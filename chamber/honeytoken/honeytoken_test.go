@@ -79,6 +79,9 @@ func TestHighHasContextAndWearAndTear(t *testing.T) {
 	if !strings.Contains(files[".bash_history"].Content, "--profile "+b.Token.Profile) {
 		t.Error("history must reference the token profile")
 	}
+	if b.Token.Bucket == "" || !strings.Contains(files[".bash_history"].Content, "s3://"+b.Token.Bucket+"/") {
+		t.Error("high token must carry the bucket used in the history")
+	}
 	if !strings.Contains(files[".aws/credentials"].Content, b.Token.AccessKeyID) {
 		t.Error("credentials file must contain the token")
 	}

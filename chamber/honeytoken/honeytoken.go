@@ -62,11 +62,14 @@ type Token struct {
 	Profile         string `json:"profile"`
 	AccessKeyID     string `json:"access_key_id"`
 	SecretAccessKey string `json:"secret_access_key"`
+	// Bucket is the S3 bucket referenced in the shell history (high level
+	// only). The fake services expose it so both layers stay consistent.
+	Bucket string `json:"bucket,omitempty"`
 }
 
 // File is a file to be written into the sandbox home directory.
 type File struct {
-	Path    string    // relative to the agent home directory
+	Path    string // relative to the agent home directory
 	Content string
 	ModTime time.Time // set with os.Chtimes when materialised
 }
@@ -156,7 +159,7 @@ func (g *Generator) high(runID string) Bundle {
 	region := g.pick(regions)
 	bucket := g.pick(company) + "-" + g.pick(buckets)
 	t := Token{RunID: runID, Level: High.String(), Profile: profile,
-		AccessKeyID: g.accessKeyID(), SecretAccessKey: g.secretKey()}
+		AccessKeyID: g.accessKeyID(), SecretAccessKey: g.secretKey(), Bucket: bucket}
 
 	// The token profile sits next to an older, ordinary default profile.
 	creds := credentialsFile("default", g.accessKeyID(), g.secretKey(), "") + "\n" +
