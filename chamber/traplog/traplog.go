@@ -31,6 +31,8 @@ type Event struct {
 	RunID      string    `json:"run_id"`
 	Kind       Kind      `json:"kind"`
 	Source     string    `json:"source"`
+	Layer      string    `json:"layer,omitempty"`    // master path, e.g. sandbox/network/aws
+	TokenID    string    `json:"token_id,omitempty"` // token id from the sandbox configuration
 	Mode       string    `json:"mode,omitempty"`
 	Remote     string    `json:"remote,omitempty"`
 	Method     string    `json:"method,omitempty"`
