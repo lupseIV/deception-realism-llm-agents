@@ -1,6 +1,6 @@
 # Detonation chamber: architecture and implementation plan
 
-Status: design, 2026-11-13.
+Status: design, 2026-11-14.
 
 ## 1. Goals
 
@@ -194,6 +194,27 @@ same host during a run, and larger than the worst-case inspection time. The
 profile is set by the `latency` attribute. Its parameters are assumptions; no
 reference values for realistic latency exist in the current sources.
 
+### 6.1 AWS network layer: proxy and Moto
+
+The `network/aws` layer is a Go proxy in front of Moto, an AWS emulator.
+
+| Responsibility | Proxy | Moto |
+|---|---|---|
+| TLS on 443, AWS host names | x | |
+| Accept only honeytoken keys (`InvalidClientTokenId` / `InvalidAccessKeyId` otherwise) | x | |
+| STS `GetCallerIdentity` and `GetAccessKeyInfo` with persona account and user | x | |
+| Token matching, trap events, latency profile | x | |
+| Block `/moto-api/`, replace server banner | x | |
+| S3, IAM, Secrets Manager and other service state | | x |
+
+Key checks stay in the proxy because token values come from the token sources
+(generator, pool, provider) and cannot be registered as chosen values through
+the AWS API; Moto runs without authentication. Moto uses in-memory state, is
+reset for every run (`/moto-api/reset`, reachable only from the proxy) and is
+seeded with the persona's buckets, objects, users and secrets. The account id
+is set with `MOTO_ACCOUNT_ID`. Moto passed all functional checks in
+`sandbox/compat` (2026-11-14).
+
 ## 7. Run lifecycle
 
 ```
@@ -234,7 +255,7 @@ microVM runtime (Firecracker [14]; Kata Containers would need a new source).
 | Current package | New role | Change needed |
 |---|---|---|
 | `chamber/honeytoken` | split: value generation -> `tokensource/generator`; placement and context -> `layers/honeytoken/awscreds` | Profile, bucket, user and path come from persona facts; format and level logic stay. |
-| `chamber/fakesvc` | `layers/network/aws` | Tokens and buckets from facts (`bind`); matching uses `Material.Match`; latency applied by the network sub-master. |
+| `chamber/fakesvc` | `layers/network/aws` (proxy) | Becomes the proxy in front of Moto: keeps key checks, STS, token matching and logging; forwards other services to Moto. Tokens and buckets from facts (`bind`); latency applied by the network sub-master. |
 | `chamber/traplog` | sink of the SandboxMaster | Add `layer` (master path) and `token_id` to `Event`. |
 
 ## 11. Package layout (target)
@@ -257,6 +278,8 @@ personas/                   ml-engineer.xml, server-host.xml, aws-developer.xml
 schema/                     sandbox.xsd, persona.xsd, pool.schema.json
 configs/                    sandbox configurations per experimental condition
 sandbox/images/             base and persona Dockerfiles
+sandbox/compat/             AWS emulator compatibility check (Moto)
+docs/tools.md               third-party tools with links and verification status
 tokens/                     pool files (gitignored)
 ```
 
@@ -276,23 +299,19 @@ the Lab5-8 case study.
 | 4 | `internal/master`: interfaces, GroupMaster, LayerMaster, event tagging; tests with fake layers | x |
 | 5 | `internal/tokensource`: interface, `generator` (from current honeytoken code), `pool`, one provider importer | x |
 | 6 | `layers/honeytoken/awscreds` using Material and persona facts; extend `traplog.Event` | x |
-| 7 | Move `fakesvc` to `layers/network/aws`, facts, `bind`, `Material.Match` | x |
-| 8 | Honeytoken layers `hftoken` (ml-engineer) and `dbcreds` (server-host), three levels each | x |
-| 9 | Environment layer at low level for the three personas | x |
-| 10 | Base and persona images; `internal/runtime/docker`; `blocked` egress with connection logging | x |
-| 11 | `detonation` egress: fake service container, DNS, TLS CA | x |
-| 12 | `internal/netshape`: latency profiles | x |
-| 13 | File-read detector as RemoteMaster | x |
-| 14 | `cmd/chamber` build/run; one end-to-end run | x |
-| 15 | Inspect AI task and react() agent driving the chamber | x |
-| 16 | Analysis: metrics, Wilson CI | x |
-| 17 | Kernel-surface probe, runc vs runsc | x |
-| 18 | Pilot runs and case study chapter | x |
-| 19 | Environment medium and high generation | |
-| 20 | Realism score R(E) and its validation | |
-| 21 | Remaining personas; persona as an experimental factor | |
-| 22 | Online provider adapters | |
-| 23 | MicroVM runtime if the kernel surface affects agents | |
+| 7 | AWS emulator compatibility check for Moto (`sandbox/compat`) | x |
+| 8 | Move `fakesvc` to `layers/network/aws` as proxy in front of Moto, facts, `bind`, `Material.Match` | x |
+| 9 | Honeytoken layers `hftoken` (ml-engineer) and `dbcreds` (server-host), three levels each | x |
+| 10 | Environment layer at low level for the three personas | x |
+| 11 | Base and persona images; `internal/runtime/docker`; `blocked` egress with connection logging | x |
+| 12 | `detonation` egress: fake service container, DNS, TLS CA | x |
+| 13 | `internal/netshape`: latency profiles | x |
+| 14 | File-read detector as RemoteMaster | x |
+| 15 | `cmd/chamber` build/run; one end-to-end run | x |
+| 16 | Inspect AI task and react() agent driving the chamber | x |
+| 17 | Analysis: metrics, Wilson CI | x |
+| 18 | Kernel-surface probe, runc vs runsc | x |
+| 19 | Pilot runs and case study chapter | x |
 
 ## 13. Realism score (draft)
 
