@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- two placements for the same token type -->
+<persona id="dup">
+  <identity user="a.b" full-name="A B" hostname="h1" company="C" company-slug="c" role="r"/>
+  <token-affinity>
+    <token type="aws-credentials" path="~/.aws/credentials"/>
+    <token type="aws-credentials" path="/root/.aws/credentials"/>
+  </token-affinity>
+</persona>

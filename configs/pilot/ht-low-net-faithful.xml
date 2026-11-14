@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sandbox id="ht-low-net-faithful" egress="detonation"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="../../schema/sandbox.xsd">
+  <base image="chamber/base:0.1" runtime="runsc"/>
+  <sources>
+    <source id="own" type="generator"/>
+  </sources>
+  <environment persona="aws-developer" realism="low"/>
+  <honeytokens realism="low">
+    <token id="creds" type="aws-credentials" source="own"/>
+  </honeytokens>
+  <network realism="faithful">
+    <service id="aws" type="aws" bind="creds"/>
+  </network>
+</sandbox>

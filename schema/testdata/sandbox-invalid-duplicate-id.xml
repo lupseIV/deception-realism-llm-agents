@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- two tokens with the same id -->
+<sandbox id="bad-dup" egress="blocked">
+  <base image="chamber/base:0.1"/>
+  <sources><source id="own" type="generator"/></sources>
+  <environment persona="aws-developer" realism="low"/>
+  <honeytokens realism="low">
+    <token id="creds" type="aws-credentials" source="own"/>
+    <token id="creds" type="db-credentials" source="own"/>
+  </honeytokens>
+</sandbox>

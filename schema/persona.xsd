@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Persona: who uses the machine. Drives the environment layers and the
+     placement and naming of honeytokens. At environment realism "low" only
+     identity, system/packages and token-affinity are used; the other
+     sections are read at medium and high realism. -->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
+
+  <xs:simpleType name="Id">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="[a-z][a-z0-9-]{0,62}"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="Names">
+    <xs:list itemType="xs:token"/>
+  </xs:simpleType>
+
+  <!-- "min-max", e.g. 20-60 -->
+  <xs:simpleType name="Range">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="[0-9]+-[0-9]+"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- home-relative (~/...) or absolute path -->
+  <xs:simpleType name="Path">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="(~|/)[^\s]*"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:element name="persona">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="identity">
+          <xs:complexType>
+            <xs:attribute name="user" use="required">
+              <xs:simpleType>
+                <xs:restriction base="xs:string">
+                  <xs:pattern value="[a-z_][a-z0-9_.-]{0,31}"/>
+                </xs:restriction>
+              </xs:simpleType>
+            </xs:attribute>
+            <xs:attribute name="full-name" type="xs:string" use="required"/>
+            <xs:attribute name="hostname" type="Id" use="required"/>
+            <xs:attribute name="company" type="xs:string" use="required"/>
+            <xs:attribute name="company-slug" type="Id" use="required"/>
+            <xs:attribute name="role" type="xs:string" use="required"/>
+            <xs:attribute name="region" type="xs:string"/>
+          </xs:complexType>
+        </xs:element>
+
+        <xs:element name="system" minOccurs="0">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="packages" type="Names" minOccurs="0"/>
+              <xs:element name="processes" type="Names" minOccurs="0"/>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+
+        <xs:element name="files" minOccurs="0">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="dir" maxOccurs="unbounded">
+                <xs:complexType>
+                  <xs:attribute name="path" type="Path" use="required"/>
+                  <xs:attribute name="kind">
+                    <xs:simpleType>
+                      <xs:restriction base="xs:string">
+                        <xs:enumeration value="git-repo"/>
+                        <xs:enumeration value="plain"/>
+                      </xs:restriction>
+                    </xs:simpleType>
+                  </xs:attribute>
+                  <xs:attribute name="count" type="Range"/>
+                  <xs:attribute name="types" type="xs:string"/>
+                </xs:complexType>
+              </xs:element>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+
+        <xs:element name="apps" minOccurs="0">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="ai-tools" type="Names" minOccurs="0"/>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+
+        <xs:element name="config" type="Names" minOccurs="0"/>
+        <xs:element name="prefs" type="Names" minOccurs="0"/>
+
+        <xs:element name="history" minOccurs="0">
+          <xs:complexType>
+            <xs:attribute name="shell" type="Id" use="required"/>
+            <xs:attribute name="length" type="Range" use="required"/>
+          </xs:complexType>
+        </xs:element>
+
+        <xs:element name="token-affinity">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="token" maxOccurs="unbounded">
+                <xs:complexType>
+                  <xs:attribute name="type" use="required">
+                    <xs:simpleType>
+                      <xs:restriction base="xs:string">
+                        <xs:enumeration value="aws-credentials"/>
+                        <xs:enumeration value="hf-token"/>
+                        <xs:enumeration value="db-credentials"/>
+                      </xs:restriction>
+                    </xs:simpleType>
+                  </xs:attribute>
+                  <xs:attribute name="path" type="Path" use="required"/>
+                </xs:complexType>
+              </xs:element>
+            </xs:sequence>
+          </xs:complexType>
+          <xs:unique name="oneTokenPerType">
+            <xs:selector xpath="token"/>
+            <xs:field xpath="@type"/>
+          </xs:unique>
+        </xs:element>
+      </xs:sequence>
+
+      <xs:attribute name="id" type="Id" use="required"/>
+      <xs:attribute name="image" type="xs:string"/>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>

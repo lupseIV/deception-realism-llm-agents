@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Sandbox configuration: one file per experimental condition.
+     The run id and the run seed are given when a run is built; seed here is
+     only a default. Checks that XSD 1.0 cannot express (for example that
+     detonation egress needs a network section) are done by the Go loader. -->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
+
+  <xs:simpleType name="Id">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="[a-z][a-z0-9-]{0,62}"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="EnvRealism">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="low"/>
+      <xs:enumeration value="medium"/>
+      <xs:enumeration value="high"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="HoneytokenRealism">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="low"/>
+      <xs:enumeration value="medium"/>
+      <xs:enumeration value="high"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="NetworkRealism">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="refused"/>
+      <xs:enumeration value="generic"/>
+      <xs:enumeration value="faithful"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:element name="sandbox">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="base">
+          <xs:complexType>
+            <xs:attribute name="image" type="xs:string" use="required"/>
+            <xs:attribute name="runtime" default="runsc">
+              <xs:simpleType>
+                <xs:restriction base="xs:string">
+                  <xs:enumeration value="runc"/>
+                  <xs:enumeration value="runsc"/>
+                </xs:restriction>
+              </xs:simpleType>
+            </xs:attribute>
+          </xs:complexType>
+        </xs:element>
+
+        <xs:element name="sources" minOccurs="0">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="source" maxOccurs="unbounded">
+                <xs:complexType>
+                  <xs:attribute name="id" type="Id" use="required"/>
+                  <xs:attribute name="type" use="required">
+                    <xs:simpleType>
+                      <xs:restriction base="xs:string">
+                        <xs:enumeration value="generator"/>
+                        <xs:enumeration value="pool"/>
+                      </xs:restriction>
+                    </xs:simpleType>
+                  </xs:attribute>
+                  <!-- pool file, relative to the repository root -->
+                  <xs:attribute name="file" type="xs:string"/>
+                </xs:complexType>
+              </xs:element>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+
+        <xs:element name="environment">
+          <xs:complexType>
+            <xs:attribute name="persona" type="Id" use="required"/>
+            <xs:attribute name="realism" type="EnvRealism" use="required"/>
+            <xs:attribute name="age-days" type="xs:positiveInteger"/>
+          </xs:complexType>
+        </xs:element>
+  
+        <xs:element name="honeytokens" minOccurs="0">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="token" maxOccurs="unbounded">
+                <xs:complexType>
+                  <xs:attribute name="id" type="Id" use="required"/>
+                  <xs:attribute name="type" use="required">
+                    <xs:simpleType>
+                      <xs:restriction base="xs:string">
+                        <xs:enumeration value="aws-credentials"/>
+                        <xs:enumeration value="hf-token"/>
+                        <xs:enumeration value="db-credentials"/>
+                      </xs:restriction>
+                    </xs:simpleType>
+                  </xs:attribute>
+                  <xs:attribute name="source" type="Id" use="required"/>
+                </xs:complexType>
+              </xs:element>
+            </xs:sequence>
+            <xs:attribute name="realism" type="HoneytokenRealism" use="required"/>
+          </xs:complexType>
+        </xs:element>
+
+        <xs:element name="network" minOccurs="0">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="service" maxOccurs="unbounded">
+                <xs:complexType>
+                  <xs:attribute name="id" type="Id" use="required"/>
+                  <xs:attribute name="type" use="required">
+                    <xs:simpleType>
+                      <xs:restriction base="xs:string">
+                        <xs:enumeration value="aws"/>
+                      </xs:restriction>
+                    </xs:simpleType>
+                  </xs:attribute>
+                  <!-- token this service stays consistent with; absent = inconsistent -->
+                  <xs:attribute name="bind" type="Id"/>
+                </xs:complexType>
+              </xs:element>
+            </xs:sequence>
+            <xs:attribute name="realism" type="NetworkRealism" use="required"/>
+            <xs:attribute name="latency" type="Id"/>
+          </xs:complexType>
+        </xs:element>
+      </xs:sequence>
+
+      <xs:attribute name="id" type="Id" use="required"/>
+      <xs:attribute name="seed" type="xs:unsignedLong"/>
+      <xs:attribute name="egress" use="required">
+        <xs:simpleType>
+          <xs:restriction base="xs:string">
+            <xs:enumeration value="blocked"/>
+            <xs:enumeration value="detonation"/>
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+    </xs:complexType>
+
+    <!-- ids are unique and references point to existing elements -->
+    <xs:key name="sourceKey">
+      <xs:selector xpath="sources/source"/>
+      <xs:field xpath="@id"/>
+    </xs:key>
+    <xs:key name="tokenKey">
+      <xs:selector xpath="honeytokens/token"/>
+      <xs:field xpath="@id"/>
+    </xs:key>
+    <xs:key name="serviceKey">
+      <xs:selector xpath="network/service"/>
+      <xs:field xpath="@id"/>
+    </xs:key>
+    <xs:keyref name="tokenSource" refer="sourceKey">
+      <xs:selector xpath="honeytokens/token"/>
+      <xs:field xpath="@source"/>
+    </xs:keyref>
+    <xs:keyref name="serviceBind" refer="tokenKey">
+      <xs:selector xpath="network/service"/>
+      <xs:field xpath="@bind"/>
+    </xs:keyref>
+  </xs:element>
+</xs:schema>

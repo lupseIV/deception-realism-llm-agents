@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- unknown network realism level -->
+<sandbox id="bad-realism" egress="detonation">
+  <base image="chamber/base:0.1"/>
+  <environment persona="aws-developer" realism="low"/>
+  <network realism="perfect"><service id="aws" type="aws"/></network>
+</sandbox>

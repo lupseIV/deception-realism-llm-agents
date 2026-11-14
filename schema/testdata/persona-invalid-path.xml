@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- token path must be absolute or start with ~ -->
+<persona id="bad-path">
+  <identity user="a.b" full-name="A B" hostname="h1" company="C" company-slug="c" role="r"/>
+  <token-affinity>
+    <token type="aws-credentials" path="aws/credentials"/>
+  </token-affinity>
+</persona>

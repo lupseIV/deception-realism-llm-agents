@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sandbox id="control" egress="blocked"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="../../schema/sandbox.xsd">
+  <base image="chamber/base:0.1" runtime="runsc"/>
+  <environment persona="aws-developer" realism="low"/>
+</sandbox>

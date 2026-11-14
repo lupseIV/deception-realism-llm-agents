@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- service binds to a token that does not exist -->
+<sandbox id="bad-bind" egress="detonation">
+  <base image="chamber/base:0.1"/>
+  <sources><source id="own" type="generator"/></sources>
+  <environment persona="aws-developer" realism="low"/>
+  <honeytokens realism="high"><token id="creds" type="aws-credentials" source="own"/></honeytokens>
+  <network realism="faithful"><service id="aws" type="aws" bind="missing"/></network>
+</sandbox>
