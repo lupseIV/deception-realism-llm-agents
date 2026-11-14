@@ -1,0 +1,27 @@
+# AWS emulator compatibility check for Moto. See README.md.
+# Moto starts with empty in-memory state and publishes its port on
+# http://localhost:5000 so it can be started from the IDE.
+# The check container only joins the internal network (no internet access).
+services:
+  moto:
+    image: motoserver/moto:latest      # pin to a digest after the first run
+    environment:
+      MOTO_ACCOUNT_ID: "418295730146"
+    ports:
+      - "5000:5000"
+    networks: [compat, host-access]
+
+  check:
+    image: amazon/aws-cli:latest
+    profiles: [check]                  # not started by "compose up"; use "compose run"
+    entrypoint: ["/bin/bash", "/compat/aws-compat.sh"]
+    environment:
+      OUT_DIR: /compat/results
+    volumes:
+      - ./:/compat
+    networks: [compat]
+
+networks:
+  compat:
+    internal: true                     # no internet access for the check
+  host-access: {}                      # needed to publish the port on localhost

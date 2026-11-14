@@ -1,0 +1,19 @@
+check	status	detail
+endpoint_reachable	PASS	http 200
+sts_get_caller_identity	PASS	account=418295730146
+account_configurable	PASS	418295730146
+iam_user	PASS	arn:aws:iam::418295730146:user/prod-deploy
+s3_upload	PASS	s3://northwind-backups/latest.tar.gz
+s3_ls	PASS	
+s3_list_objects_v2	PASS	objects=1
+s3_download	PASS	content identical
+s3_missing_key	PASS	 aws: [ERROR]: An error occurred (NoSuchKey) when calling the GetObject operation: The specified key does not exist. 
+secretsmanager	PASS	round trip ok
+sts_get_access_key_info	INFO	account=418295730146
+accepts_any_key	INFO	yes (proxy must reject unknown keys)
+admin_path /_floci/ui	INFO	http 404
+admin_path /_localstack/health	INFO	http 404
+admin_path /moto-api/	INFO	http 200
+admin_path /moto-api/reset	INFO	http 400
+server_header	INFO	Werkzeug/3.1.9 Python/3.13.18,amazon.com
+duration_seconds	INFO	9
