@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- persona file does not exist -->
+<sandbox id="unknown-persona" egress="blocked">
+  <base image="chamber/base:0.1"/>
+  <environment persona="nobody" realism="low"/>
+</sandbox>

@@ -37,7 +37,7 @@ func TestPilotConfigsAreValid(t *testing.T) {
 	}
 }
 
-func TestSchemaInvalidExamplesAreRejected(t *testing.T) {
+func TestSchemaInvalidSandboxesAreRejected(t *testing.T) {
 	cases := map[string]string{
 		"sandbox-invalid-bind.xml":         `bind "missing" is not a token id`,
 		"sandbox-invalid-source.xml":       `source "pool" is not a declared source`,
@@ -68,7 +68,7 @@ func valid() Sandbox {
 	}
 }
 
-func TestRules(t *testing.T) {
+func TestSandboxRules(t *testing.T) {
 	cases := []struct {
 		name   string
 		change func(s *Sandbox)
@@ -115,7 +115,7 @@ func TestRules(t *testing.T) {
 	}
 }
 
-func TestAllProblemsAreReported(t *testing.T) {
+func TestSandboxReportsAllProblems(t *testing.T) {
 	s := valid()
 	s.Base.Image = ""
 	s.Network.Services[0].Bind = "missing"

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- pool source whose file does not exist -->
+<sandbox id="pool-missing-file" egress="blocked">
+  <base image="chamber/base:0.1"/>
+  <sources><source id="pool" type="pool" file="tokens/does-not-exist.json"/></sources>
+  <environment persona="aws-developer" realism="low"/>
+  <honeytokens realism="low"><token id="creds" type="aws-credentials" source="pool"/></honeytokens>
+</sandbox>

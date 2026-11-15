@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- persona db-only has no placement for aws-credentials -->
+<sandbox id="no-placement" egress="blocked">
+  <base image="chamber/base:0.1"/>
+  <sources><source id="own" type="generator"/></sources>
+  <environment persona="db-only" realism="low"/>
+  <honeytokens realism="low"><token id="creds" type="aws-credentials" source="own"/></honeytokens>
+</sandbox>

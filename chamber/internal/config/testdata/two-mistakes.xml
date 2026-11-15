@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- two independent mistakes: missing image and an unknown bind -->
+<sandbox id="two-mistakes" egress="detonation">
+  <base image=""/>
+  <sources><source id="own" type="generator"/></sources>
+  <environment persona="aws-developer" realism="low"/>
+  <honeytokens realism="high"><token id="creds" type="aws-credentials" source="own"/></honeytokens>
+  <network realism="faithful"><service id="aws" type="aws" bind="missing"/></network>
+</sandbox>

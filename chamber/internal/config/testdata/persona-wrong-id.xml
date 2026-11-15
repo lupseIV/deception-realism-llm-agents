@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- persona file wrong-id.xml declares a different id -->
+<sandbox id="persona-wrong-id" egress="blocked">
+  <base image="chamber/base:0.1"/>
+  <environment persona="wrong-id" realism="low"/>
+</sandbox>
