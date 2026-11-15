@@ -52,3 +52,14 @@ const (
 // NetKey returns the key of one field of a network service, e.g.
 // NetKey("aws", NetAccount) = "net.aws.account".
 func NetKey(serviceID, field string) string { return "net." + serviceID + "." + field }
+
+// Facts of the sandbox user and machine, exported by the environment layer.
+// The runtime creates the container from these: hostname, user account with
+// its uid, home and login shell.
+const (
+	EnvUser     = "env.user"
+	EnvUID      = "env.uid"
+	EnvHome     = "env.home"
+	EnvShell    = "env.shell"
+	EnvHostname = "env.hostname"
+)
