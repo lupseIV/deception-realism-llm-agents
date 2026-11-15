@@ -1,0 +1,353 @@
+{
+  "meta": {
+    "model": "qwen3:8b",
+    "ollama": "0.40.16",
+    "time": "2026-11-15T23:51:05"
+  },
+  "rows": [
+    {
+      "ctx": 4096,
+      "load_s": 2.93,
+      "vram_total_mib": 8192,
+      "vram_before_mib": 1014,
+      "vram_loaded_mib": 6461,
+      "vram_free_mib": 1731,
+      "model_size_mib": 5328,
+      "on_gpu_pct": 100,
+      "runs": [
+        {
+          "total_s": 0.71,
+          "load_s": 0.01,
+          "prompt_tokens": 27,
+          "prompt_tok_s": 673.0,
+          "output_tokens": 41,
+          "output_tok_s": 61.9,
+          "truncated": false,
+          "prompt": "short",
+          "think": false
+        },
+        {
+          "total_s": 3.73,
+          "load_s": 0.01,
+          "prompt_tokens": 21,
+          "prompt_tok_s": 340.8,
+          "output_tokens": 217,
+          "output_tok_s": 59.4,
+          "truncated": false,
+          "prompt": "short",
+          "think": true
+        },
+        {
+          "total_s": 4.56,
+          "load_s": 0.01,
+          "prompt_tokens": 62,
+          "prompt_tok_s": 661.9,
+          "output_tokens": 264,
+          "output_tok_s": 59.3,
+          "truncated": false,
+          "prompt": "agent",
+          "think": false
+        },
+        {
+          "total_s": 12.95,
+          "load_s": 0.01,
+          "prompt_tokens": 56,
+          "prompt_tok_s": 1014.8,
+          "output_tokens": 752,
+          "output_tok_s": 58.4,
+          "truncated": false,
+          "prompt": "agent",
+          "think": true
+        },
+        {
+          "total_s": 0.55,
+          "load_s": 0.01,
+          "prompt_tokens": 162,
+          "prompt_tok_s": 844.1,
+          "output_tokens": 20,
+          "output_tok_s": 61.1,
+          "truncated": false,
+          "tool_call": {
+            "index": 0,
+            "name": "bash",
+            "arguments": {
+              "cmd": "ls ~"
+            }
+          },
+          "prompt": "tool_call",
+          "think": false
+        },
+        {
+          "total_s": 2.4,
+          "load_s": 0.01,
+          "prompt_tokens": 3213,
+          "prompt_tok_s": 1379.4,
+          "output_tokens": 3,
+          "output_tok_s": 80.9,
+          "truncated": false,
+          "prompt": "fill_70pct",
+          "think": false,
+          "vram_peak_mib": 6459
+        }
+      ]
+    },
+    {
+      "ctx": 8192,
+      "load_s": 2.88,
+      "vram_total_mib": 8192,
+      "vram_before_mib": 1006,
+      "vram_loaded_mib": 7033,
+      "vram_free_mib": 1159,
+      "model_size_mib": 5908,
+      "on_gpu_pct": 100,
+      "runs": [
+        {
+          "total_s": 0.72,
+          "load_s": 0.01,
+          "prompt_tokens": 27,
+          "prompt_tok_s": 591.4,
+          "output_tokens": 41,
+          "output_tok_s": 61.5,
+          "truncated": false,
+          "prompt": "short",
+          "think": false
+        },
+        {
+          "total_s": 3.76,
+          "load_s": 0.01,
+          "prompt_tokens": 21,
+          "prompt_tok_s": 329.8,
+          "output_tokens": 225,
+          "output_tok_s": 61.2,
+          "truncated": false,
+          "prompt": "short",
+          "think": true
+        },
+        {
+          "total_s": 4.66,
+          "load_s": 0.01,
+          "prompt_tokens": 62,
+          "prompt_tok_s": 696.9,
+          "output_tokens": 274,
+          "output_tok_s": 60.3,
+          "truncated": false,
+          "prompt": "agent",
+          "think": false
+        },
+        {
+          "total_s": 17.43,
+          "load_s": 0.01,
+          "prompt_tokens": 56,
+          "prompt_tok_s": 1052.3,
+          "output_tokens": 1024,
+          "output_tok_s": 59.0,
+          "truncated": true,
+          "prompt": "agent",
+          "think": true
+        },
+        {
+          "total_s": 0.58,
+          "load_s": 0.01,
+          "prompt_tokens": 162,
+          "prompt_tok_s": 780.8,
+          "output_tokens": 20,
+          "output_tok_s": 61.5,
+          "truncated": false,
+          "tool_call": {
+            "index": 0,
+            "name": "bash",
+            "arguments": {
+              "cmd": "ls ~"
+            }
+          },
+          "prompt": "tool_call",
+          "think": false
+        },
+        {
+          "total_s": 5.02,
+          "load_s": 0.01,
+          "prompt_tokens": 6423,
+          "prompt_tok_s": 1304.7,
+          "output_tokens": 4,
+          "output_tok_s": 68.1,
+          "truncated": false,
+          "prompt": "fill_70pct",
+          "think": false,
+          "vram_peak_mib": 7030
+        }
+      ]
+    },
+    {
+      "ctx": 16384,
+      "load_s": 3.63,
+      "vram_total_mib": 8192,
+      "vram_before_mib": 998,
+      "vram_loaded_mib": 7120,
+      "vram_free_mib": 1072,
+      "model_size_mib": 7474,
+      "on_gpu_pct": 80,
+      "runs": [
+        {
+          "total_s": 1.79,
+          "load_s": 0.01,
+          "prompt_tokens": 27,
+          "prompt_tok_s": 106.9,
+          "output_tokens": 41,
+          "output_tok_s": 26.9,
+          "truncated": false,
+          "prompt": "short",
+          "think": false
+        },
+        {
+          "total_s": 10.9,
+          "load_s": 0.01,
+          "prompt_tokens": 21,
+          "prompt_tok_s": 200.6,
+          "output_tokens": 301,
+          "output_tok_s": 27.9,
+          "truncated": false,
+          "prompt": "short",
+          "think": true
+        },
+        {
+          "total_s": 9.69,
+          "load_s": 0.01,
+          "prompt_tokens": 62,
+          "prompt_tok_s": 407.9,
+          "output_tokens": 269,
+          "output_tok_s": 28.3,
+          "truncated": false,
+          "prompt": "agent",
+          "think": false
+        },
+        {
+          "total_s": 38.54,
+          "load_s": 0.01,
+          "prompt_tokens": 56,
+          "prompt_tok_s": 564.1,
+          "output_tokens": 1019,
+          "output_tok_s": 26.5,
+          "truncated": false,
+          "prompt": "agent",
+          "think": true
+        },
+        {
+          "total_s": 0.93,
+          "load_s": 0.01,
+          "prompt_tokens": 162,
+          "prompt_tok_s": 729.7,
+          "output_tokens": 20,
+          "output_tok_s": 30.2,
+          "truncated": false,
+          "tool_call": {
+            "index": 0,
+            "name": "bash",
+            "arguments": {
+              "cmd": "ls ~"
+            }
+          },
+          "prompt": "tool_call",
+          "think": false
+        },
+        {
+          "total_s": 13.46,
+          "load_s": 0.01,
+          "prompt_tokens": 12929,
+          "prompt_tok_s": 989.4,
+          "output_tokens": 4,
+          "output_tok_s": 11.8,
+          "truncated": false,
+          "prompt": "fill_70pct",
+          "think": false,
+          "vram_peak_mib": 7132
+        }
+      ]
+    },
+    {
+      "ctx": 32768,
+      "load_s": 4.39,
+      "vram_total_mib": 8192,
+      "vram_before_mib": 998,
+      "vram_loaded_mib": 7131,
+      "vram_free_mib": 1061,
+      "model_size_mib": 9850,
+      "on_gpu_pct": 61,
+      "runs": [
+        {
+          "total_s": 3.02,
+          "load_s": 0.01,
+          "prompt_tokens": 27,
+          "prompt_tok_s": 56.4,
+          "output_tokens": 40,
+          "output_tok_s": 15.8,
+          "truncated": false,
+          "prompt": "short",
+          "think": false
+        },
+        {
+          "total_s": 13.63,
+          "load_s": 0.01,
+          "prompt_tokens": 21,
+          "prompt_tok_s": 121.0,
+          "output_tokens": 205,
+          "output_tok_s": 15.3,
+          "truncated": false,
+          "prompt": "short",
+          "think": true
+        },
+        {
+          "total_s": 17.68,
+          "load_s": 0.01,
+          "prompt_tokens": 62,
+          "prompt_tok_s": 289.2,
+          "output_tokens": 266,
+          "output_tok_s": 15.2,
+          "truncated": false,
+          "prompt": "agent",
+          "think": false
+        },
+        {
+          "total_s": 71.53,
+          "load_s": 0.01,
+          "prompt_tokens": 56,
+          "prompt_tok_s": 353.5,
+          "output_tokens": 1024,
+          "output_tok_s": 14.4,
+          "truncated": true,
+          "prompt": "agent",
+          "think": true
+        },
+        {
+          "total_s": 1.52,
+          "load_s": 0.01,
+          "prompt_tokens": 162,
+          "prompt_tok_s": 501.1,
+          "output_tokens": 20,
+          "output_tok_s": 17.4,
+          "truncated": false,
+          "tool_call": {
+            "index": 0,
+            "name": "bash",
+            "arguments": {
+              "cmd": "ls ~"
+            }
+          },
+          "prompt": "tool_call",
+          "think": false
+        },
+        {
+          "total_s": 40.45,
+          "load_s": 0.01,
+          "prompt_tokens": 25942,
+          "prompt_tok_s": 666.2,
+          "output_tokens": 4,
+          "output_tok_s": 2.8,
+          "truncated": false,
+          "prompt": "fill_70pct",
+          "think": false,
+          "vram_peak_mib": 7161
+        }
+      ]
+    }
+  ]
+}
