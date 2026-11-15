@@ -40,3 +40,15 @@ func TokenKey(tokenID, field string) string { return "token." + tokenID + "." + 
 // token type, e.g. "persona.token-path.aws-credentials". The value keeps the
 // leading ~ as written in the persona file.
 func TokenPathKey(tokenType string) string { return tokenPathPrefix + tokenType }
+
+// Fields of a network service, exported by network layers under
+// "net.<service id>.<field>", e.g. for the runtime that starts the backends.
+const (
+	NetAccount = "account" // AWS account id the backend must use
+	NetUser    = "user"    // IAM user name of the bound token
+	NetMode    = "mode"    // network realism level
+)
+
+// NetKey returns the key of one field of a network service, e.g.
+// NetKey("aws", NetAccount) = "net.aws.account".
+func NetKey(serviceID, field string) string { return "net." + serviceID + "." + field }
