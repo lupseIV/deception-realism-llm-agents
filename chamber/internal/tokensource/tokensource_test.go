@@ -33,7 +33,7 @@ func TestGeneratorLevelsAndDeterminism(t *testing.T) {
 	if a.Fields["access_key_id"] == c.Fields["access_key_id"] {
 		t.Fatal("different token ids in one run must differ")
 	}
-	if !regexp.MustCompile(`^AKIA[A-Z2-7]{16}$`).MatchString(a.Fields["access_key_id"]) || a.Facts["bucket"] == "" {
+	if !regexp.MustCompile(`^AKIA[A-Z2-7]{16}$`).MatchString(a.Fields["access_key_id"]) || len(a.Facts) != 0 {
 		t.Fatalf("bad high material %+v", a)
 	}
 	if len(a.Match) != 2 || a.Source != "generator" {
