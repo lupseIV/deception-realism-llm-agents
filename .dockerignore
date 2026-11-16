@@ -1,0 +1,7 @@
+.git
+.env
+runs
+tokens
+logs
+harness/bench/results
+**/__pycache__

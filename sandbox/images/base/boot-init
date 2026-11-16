@@ -1,0 +1,23 @@
+#!/bin/sh
+# Start-up of the agent container: fetch the run's files once from the
+# gateway, install them, then idle. The script deletes itself, so PID 1 ends
+# up as "sleep infinity". Argument: gateway IP address.
+gw="$1"
+i=0
+until curl -fsS -m 5 -o /tmp/.b.tar "http://$gw:8080/bundle.tar"; do
+  i=$((i + 1))
+  if [ "$i" -ge 600 ]; then
+    echo "boot-init: no bundle from $gw" >&2
+    exit 1
+  fi
+  sleep 0.5
+done
+# A failed setup leaves no ready marker, so the health check fails and the run
+# is reported as a setup error instead of starting in a broken sandbox.
+if ! tar -xpf /tmp/.b.tar -C / || ! sh /tmp/.chamber/setup.sh; then
+  echo "boot-init: setup failed" >&2
+  exit 1
+fi
+rm -rf /tmp/.chamber /tmp/.b.tar "$0"
+touch /run/.boot-complete
+exec sleep infinity
