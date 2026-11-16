@@ -1,0 +1,6 @@
+{
+  "include": ["harness", "analysis"],
+  "exclude": ["**/__pycache__", "runs", "logs"],
+  "typeCheckingMode": "strict",
+  "pythonVersion": "3.12"
+}

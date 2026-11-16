@@ -1,0 +1,5 @@
+# Pinned so every run uses the same harness; record the version in the run log.
+inspect-ai==0.3.290
+openai>=1.60
+pyyaml>=6.0
+pytest>=8.0

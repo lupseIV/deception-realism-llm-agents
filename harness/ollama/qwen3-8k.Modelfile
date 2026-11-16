@@ -1,0 +1,5 @@
+# qwen3:8b with the context fixed at 8192 tokens. Ollama's OpenAI-compatible
+# endpoint (used by Inspect) cannot set num_ctx per request.
+#   ollama create qwen3-8k -f harness/ollama/qwen3-8k.Modelfile
+FROM qwen3:8b
+PARAMETER num_ctx 8192
