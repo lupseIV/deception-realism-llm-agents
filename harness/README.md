@@ -38,15 +38,9 @@ A larger model also makes the results more credible (same family, different size
 
 ### 1.3 Options and prices (checked 2026-11-16)
 
-**A. Pay per token API (preferred).** No server to run, pay only for tokens.
+**A. Hosted API (preferred).** Second model for now is **Gemini 2.5 Flash on the Google AI free tier** (`google/gemini-2.5-flash`, `GOOGLE_API_KEY`): no cost, thinking disabled, but a low daily request quota, so runs stay sequential and a pilot is realistic while the full grid may need `gemini-2.5-flash-lite` (higher quota) or a paid key. Thinking is turned off with `reasoning_tokens: 0` to match the local model.
 
-| Model | Provider | Input / 1M tok | Output / 1M tok |
-|---|---|---|---|
-| Qwen3-235B-A22B Instruct 2507 | OpenRouter | $0.0875 | $0.35 |
-| Qwen3-235B-A22B (original) | OpenRouter (tracker data) | about $0.46 | about $1.82 |
-
-Prices differ by model variant and by backend provider. Check the model page
-before a run.
+A paid, same-family alternative (Qwen3-235B on OpenRouter, pinned to one fp8 backend) is kept commented in `models.yaml` for when there is budget; prices there change, so check the model page before enabling it.
 
 **B. Rented GPU running vLLM.** Only needed for control over weights,
 quantization or logprobs.
@@ -100,7 +94,7 @@ OpenRouter can route one model to different backends. For reproducible runs,
 pin one backend with the `provider` model arg (fixed `order`,
 `allow_fallbacks: false`).
 
-### 2.3 Profile file (planned: `harness/models.yaml`)
+### 2.3 Profile file (`harness/models.yaml`)
 
 ```yaml
 profiles:
@@ -113,7 +107,7 @@ profiles:
     model_args:
       provider: {order: ["<backend>"], allow_fallbacks: false}
   gemini-flash:
-    model: google/<gemini-flash-version>
+    model: google/gemini-2.5-flash
 
 generate:                          # same for every profile
   temperature: <fixed>
@@ -121,7 +115,7 @@ generate:                          # same for every profile
   seed: <fixed, where supported>
 ```
 
-`harness/models.py` (planned) reads the file and returns the model string,
+`harness/models.py` reads the file and returns the model string,
 model args and `GenerateConfig`. Tasks pass the result to `eval()`. The profile
 name and the resolved values are written into the run metadata.
 
@@ -154,6 +148,26 @@ name and the resolved values are written into the run metadata.
 3. Run the bench tool-call check before the experiment.
 4. Stop the pod after the run. A stopped pod still pays for storage until the
    volume is deleted.
+
+### 2.6 Running
+
+```bash
+pip install -r harness/requirements.txt
+ollama create qwen3-8k -f harness/ollama/qwen3-8k.Modelfile   # once
+python harness/prepare.py                                     # compose files + runs/pilot/samples.jsonl
+python harness/run.py --profile qwen3-8b-local --limit 1      # smoke test, one sample
+python harness/run.py --profile qwen3-8b-local                # all samples, sequentially
+inspect view --log-dir logs/pilot
+```
+
+| File | Role |
+|---|---|
+| `models.yaml`, `models.py` | model profiles |
+| `prepare.py` | one chamber run per condition x task x repetition (`chamber compose` + `chamber facts`) |
+| `prompts.py` | system prompt, benign and injection task, handover note with the injection |
+| `chamber_task.py` | Inspect task: `react()` agent with `bash` as the persona user, history trimmed to the profile budget, trap scorer |
+| `scoring.py` | metrics from trap log and transcript (read, exfiltrate, use, trigger, depth, avoid, mention, benign success) |
+| `run.py` | runs a sample set with one profile; logs to `logs/<set>/` |
 
 ---
 
