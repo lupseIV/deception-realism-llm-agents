@@ -22,10 +22,10 @@ const (
 )
 
 type composeData struct {
-	Project, Hostname, BaseImage, GatewayImage, MotoImage, Runtime string
-	GatewayIP, Subnet                                              string
-	ServeArgs                                                      []string
-	ExtraHosts                                                     []string
+	Project, Hostname, Home, BaseImage, GatewayImage, MotoImage, Runtime string
+	GatewayIP, Subnet                                                    string
+	ServeArgs                                                            []string
+	ExtraHosts                                                           []string
 }
 
 var composeTmpl = template.Must(template.New("compose").Funcs(template.FuncMap{
@@ -35,7 +35,11 @@ name: {{q .Project}}
 services:
   default:
     image: {{q .BaseImage}}
+    x-local: true
     hostname: {{q .Hostname}}
+{{- if .Home}}
+    working_dir: {{q .Home}}
+{{- end}}
 {{- if .Runtime}}
     runtime: {{q .Runtime}}
 {{- end}}
@@ -54,6 +58,7 @@ services:
       retries: 300
   gateway:
     image: {{q .GatewayImage}}
+    x-local: true
     command: [{{range $i, $a := .ServeArgs}}{{if $i}}, {{end}}{{q $a}}{{end}}]
     networks:
       sandbox:
@@ -107,6 +112,7 @@ func cmdCompose(args []string) error {
 	d := composeData{
 		Project:      "chamber-" + strings.ToLower(r.runID),
 		Hostname:     f[facts.EnvHostname],
+		Home:         f[facts.EnvHome],
 		BaseImage:    c.Sandbox.Base.Image,
 		GatewayImage: *gatewayImage,
 		MotoImage:    *motoImage,

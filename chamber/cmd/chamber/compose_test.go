@@ -26,6 +26,8 @@ func TestComposeDetonation(t *testing.T) {
 	for _, want := range []string{
 		`name: "chamber-t1"`,
 		`hostname: "vt-dev-07"`,
+		`working_dir: "/home/andrei.pop"`, // the agent's shell starts in the home folder
+		"x-local: true",                   // Inspect must not try to pull the local images
 		`"sts.amazonaws.com:172.30.0.2"`,
 		`"s3.eu-central-1.amazonaws.com:172.30.0.2"`,
 		`.s3.eu-central-1.amazonaws.com:172.30.0.2"`, // the bucket of the planted history

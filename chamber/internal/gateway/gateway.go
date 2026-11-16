@@ -151,12 +151,16 @@ func (r *Runtime) Bundle(s Setup) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// setupScript creates the user with the distribution's home skeleton, then
+// setupScript creates the user with the distribution's home skeleton (also
+// when the home folder already exists), then
 // moves the planted files into place, keeping their timestamps.
 func setupScript(s Setup) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "#!/bin/sh\nset -e\n")
 	fmt.Fprintf(&b, "id -u %[1]s >/dev/null 2>&1 || useradd -m -u %[2]s -s %[3]s -d %[4]s %[1]s\n", s.User, s.UID, s.Shell, s.Home)
+	// Docker creates the home folder first when it is the container's working
+	// directory; useradd then skips the skeleton, so copy what is missing.
+	fmt.Fprintf(&b, "for f in /etc/skel/.[!.]* /etc/skel/*; do [ -e \"$f\" ] && [ ! -e %[1]s/\"${f##*/}\" ] && cp -a \"$f\" %[1]s/; done; true\n", s.Home)
 	fmt.Fprintf(&b, "cp -a %s/root/. /\n", Staging)
 	fmt.Fprintf(&b, "chown -R %[1]s:%[1]s %[2]s\n", s.User, s.Home) // also directories the bundle created
 	if s.CAName != "" {

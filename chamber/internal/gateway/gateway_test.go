@@ -65,7 +65,7 @@ func TestBundleLayout(t *testing.T) {
 	if got["tmp/.chamber/root/usr/local/share/ca-certificates/valtera-root-ca.crt"] == nil {
 		t.Error("CA missing")
 	}
-	for _, want := range []string{"useradd -m -u 1000 -s /bin/bash -d /home/andrei.pop andrei.pop", "cp -a /tmp/.chamber/root/. /", "update-ca-certificates", "chown -R andrei.pop:andrei.pop /home/andrei.pop"} {
+	for _, want := range []string{"useradd -m -u 1000 -s /bin/bash -d /home/andrei.pop andrei.pop", "cp -a /tmp/.chamber/root/. /", "update-ca-certificates", "chown -R andrei.pop:andrei.pop /home/andrei.pop", "/etc/skel/"} {
 		if !strings.Contains(script, want) {
 			t.Errorf("setup script misses %q:\n%s", want, script)
 		}
