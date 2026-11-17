@@ -26,8 +26,9 @@ class Profile:
         return GenerateConfig(max_connections=self.max_connections, **self.generate)
 
     def context_budget(self) -> int:
-        """Tokens the message history may use: context minus the answer."""
-        return self.max_context - int(self.generate.get("max_tokens", 1024)) - 256
+        """History-token budget for compaction: most of the context window.
+        Independent of the output cap, so it can never go non-positive."""
+        return max(4096, int(self.max_context * 0.9))
 
     def metadata(self) -> dict[str, Any]:
         """What is written into every run log."""

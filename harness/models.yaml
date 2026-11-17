@@ -4,41 +4,141 @@
 # Fields per profile:
 #   model        Inspect model string
 #   model_args   provider-specific arguments (passed as -M / model_args)
-#   max_context  context budget in tokens; the agent history is trimmed to fit
+#   max_context  history-token budget (compaction trims to ~90% of it)
 #   max_connections  parallel requests to the model
 #   generate     overrides of the shared generation settings below
 #   notes        backend, quantization, anything needed to report the condition
 
 generate:                  # shared by every profile, fixed per experiment
-  temperature: 0.7         # Qwen3 recommendation for non-thinking mode
+  temperature: 0.7
   top_p: 0.8
-  max_tokens: 1024
-  seed: 1234
-  max_tool_output: 4096    # bytes of tool output shown to the model
+  seed: 1234               # no max_tokens: let Gemini use its own large default
+  max_tool_output: 200000  # high on purpose: a real shell never truncates, so avoid Inspect's
+                           # "output too long" banner, which is a sandbox tell. Costs more tokens.
 
 profiles:
-  qwen3-8b-local:
-    model: ollama/qwen3-8k  # qwen3:8b with num_ctx 8192, see ollama/qwen3-8k.Modelfile
-    max_context: 8192       # bench: 100% on the GPU up to 8k
-    max_connections: 1
-    generate:
-      extra_body: {reasoning: {effort: none}}   # Ollama: thinking off
-    notes: "Ollama, Q4 (default qwen3:8b tag), local RTX 2070 Super"
-
   gemini-flash:
-    model: google/gemini-2.5-flash
-    max_context: 8192         # same budget as the local model (README rule 6)
-    max_connections: 1        # free tier is ~10 RPM; keep one request at a time
+    model: google/gemini-3.8-flash
+    max_context: 131072       # 1M-context model; no low-context cap
+    max_connections: 1        # free tier is ~15 RPM; keep one request at a time
     generate:
-      reasoning_tokens: 0     # Gemini: thinking off (thinking_budget=0), like the local model
-    notes: "Google AI free tier, Gemini 2.5 Flash; thinking disabled. For more daily quota use gemini-2.5-flash-lite."
+      reasoning_effort: low   # Gemini 3.8 Flash always thinks; low is the floor (no off)
+      max_retries: 5          # a 429 "exceeded your current quota" otherwise retries for a long time
+                              # and the sample looks stuck on the system prompt
+      # NO max_tokens: the output cap counts thinking tokens, so a small value
+      # (or the shared default) starves thinking and returns EMPTY completions.
+    notes: "Google AI free tier, Gemini 3.8 Flash (~15 RPM, 1500 RPD). Thinking cannot be disabled on 3.x (floor=low)."
 
-  # Cloud alternative, not used for now (needs OpenRouter credit). Re-enable by
-  # uncommenting; see README section 2.
-  # qwen3-235b-api:
-  #   model: openrouter/qwen/qwen3-235b-a22b-2507
-  #   model_args:
-  #     provider: {order: [parasail], allow_fallbacks: false}
-  #   max_context: 8192
-  #   max_connections: 4
-  #   notes: "OpenRouter, pinned to Parasail, fp8; Instruct 2507 has no thinking mode"
+  # Local Qwen3 8B (Ollama) was dropped on 2026-11-17: on 8 GB VRAM it is only fully on the
+  # GPU up to an 8k context (bench/results), too small for the agent runs.
+
+  # --- OpenRouter (OPENROUTER_API_KEY). Thinking OFF on all three. ---
+  # One backend pinned per model (allow_fallbacks: false) so a run is one condition.
+  # require_parameters: only route to a backend that honours tools and seed.
+  # The two Qwen models are Instruct (non-thinking) builds: send no reasoning param, because
+  # with require_parameters the Parasail endpoint (no 'reasoning' support) would be skipped.
+  # Prices checked 2026-11-17 on openrouter.ai; re-check before a run.
+  qwen3-235b-api:
+    model: openrouter/qwen/qwen3-235b-a22b-2507
+    model_args: {provider: {order: [parasail], allow_fallbacks: false, require_parameters: true}}
+    max_context: 131072         # Parasail endpoint context
+    max_connections: 2
+    generate: {max_retries: 5}
+    notes: "OpenRouter -> Parasail, fp8. Qwen3-235B-A22B Instruct-2507: non-thinking model (no reasoning tokens). $0.14/M in, $0.80/M out."
+
+  qwen3-next-80b-api:
+    model: openrouter/qwen/qwen3-next-80b-a3b-instruct
+    model_args: {provider: {order: [parasail], allow_fallbacks: false, require_parameters: true}}
+    max_context: 131072         # same history budget as qwen3-235b-api (endpoint allows 262k)
+    max_connections: 2
+    generate: {max_retries: 5}
+    notes: "OpenRouter -> Parasail, fp8. Qwen3-Next-80B-A3B Instruct: non-thinking model. $0.10/M in, $1.10/M out."
+
+  gemma4-31b-free:
+    model: openrouter/google/gemma-4-31b-it:free
+    model_args:
+      provider: {order: [google-ai-studio], allow_fallbacks: false, require_parameters: true}
+      reasoning_enabled: false  # hybrid model: Inspect sends reasoning.enabled=false
+    max_context: 131072
+    max_connections: 1          # free endpoint, rate limited
+    generate: {max_retries: 5}
+    notes: "OpenRouter free endpoint (Google AI Studio). Gemma 4 31B, reasoning disabled. $0, rate limited."
+
+  # --- Qwen3 size ladders on OpenRouter (paid, thinking OFF). Checked 2026-11-17. ---
+  # Ladder A = one release (Qwen3, Apr 2025, dense, hybrid thinking), size changes only:
+  #   qwen3-14b-api -> qwen3-32b-api   (both DeepInfra fp8, same 32k history budget;
+  #   the endpoint context is 40960, the rest is left for the answer)
+  #   Only DeepInfra's standard fp8 endpoint has tools; require_parameters picks it
+  #   (its flex/priority endpoints lack tools and are skipped).
+  # Ladder B = Qwen3-2507 Instruct MoE builds (no thinking mode at all):
+  #   qwen3-30b-a3b-api -> qwen3-235b-api
+  qwen3-14b-api:
+    model: openrouter/qwen/qwen3-14b
+    model_args:
+      provider: {order: [deepinfra], allow_fallbacks: false, require_parameters: true}
+      reasoning_enabled: false  # hybrid model: same effect as /no_think
+    max_context: 32768
+    max_connections: 2
+    generate: {max_retries: 5}
+    notes: "OpenRouter -> DeepInfra fp8. Qwen3-14B dense (Apr 2025 release), thinking off. $0.12/M in, $0.24/M out."
+
+  qwen3-32b-api:
+    model: openrouter/qwen/qwen3-32b
+    model_args:
+      provider: {order: [deepinfra], allow_fallbacks: false, require_parameters: true}
+      reasoning_enabled: false
+    max_context: 32768
+    max_connections: 2
+    generate: {max_retries: 5}
+    notes: "OpenRouter -> DeepInfra fp8. Qwen3-32B dense (Apr 2025 release), thinking off. $0.08/M in, $0.28/M out."
+
+  qwen3-30b-a3b-api:
+    model: openrouter/qwen/qwen3-30b-a3b-instruct-2507
+    model_args: {provider: {order: [nebius], allow_fallbacks: false, require_parameters: true}}
+    max_context: 131072         # same as qwen3-235b-api (ladder B)
+    max_connections: 2
+    generate: {max_retries: 5}
+    notes: "OpenRouter -> Nebius fp8. Qwen3-30B-A3B Instruct-2507 MoE, non-thinking build. $0.10/M in, $0.30/M out."
+
+  # --- More free OpenRouter models (tools + thinking can be switched off). ---
+  # Each has one free backend; tested 2026-11-17 with reasoning off: 0 reasoning tokens.
+  # Free endpoints are rate limited and can be changed or removed without notice.
+  nemotron3-ultra-free:
+    model: openrouter/nvidia/nemotron-3-ultra-550b-a55b:free
+    model_args:
+      provider: {order: [nvidia], allow_fallbacks: false, require_parameters: true}
+      reasoning_enabled: false
+    max_context: 131072
+    max_connections: 1
+    generate: {max_retries: 5}
+    notes: "OpenRouter free, NVIDIA backend. Nemotron 3 Ultra 550B-A55B MoE, reasoning disabled. $0."
+
+  nemotron35-super-free:
+    model: openrouter/nvidia/nemotron-3.5-super-vl:free
+    model_args:
+      provider: {order: [nvidia], allow_fallbacks: false, require_parameters: true}
+      reasoning_enabled: false
+    max_context: 131072
+    max_connections: 1
+    generate: {max_retries: 5}
+    notes: "OpenRouter free, NVIDIA backend. Nemotron 3.5 Super VL 120B-A12B MoE, reasoning disabled. $0."
+
+  ling32-flash-free:
+    model: openrouter/inclusionai/ling-3.2-flash:free
+    model_args:
+      provider: {order: [antdigital], allow_fallbacks: false, require_parameters: true}
+      reasoning_enabled: false
+    max_context: 131072
+    max_connections: 1
+    generate: {max_retries: 5}
+    notes: "OpenRouter free, Ant Digital backend, fp8. Ling 3.2 Flash (hybrid), reasoning disabled. $0."
+
+  particle1-free:
+    model: openrouter/particle-ai/particle-1:free
+    model_args:
+      provider: {order: [particle-ai], allow_fallbacks: false, require_parameters: true}
+      reasoning_enabled: false
+    max_context: 131072
+    max_connections: 1
+    generate: {max_retries: 5}
+    notes: "OpenRouter free, Particle AI backend. Particle-1 (agentic coding, post-trained on DeepSeek V4.1 Flash), reasoning disabled. $0."

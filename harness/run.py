@@ -1,7 +1,7 @@
 """Run a sample set with one model profile.
 
-  python harness/run.py --profile qwen3-8b-local
-  python harness/run.py --profile qwen3-8b-local --limit 1        # smoke test
+  python harness/run.py --profile qwen3-14b-api
+  python harness/run.py --profile qwen3-14b-api --limit 1         # smoke test
   python harness/run.py --profile qwen3-235b-api --informed
 
 Runs are sequential: all runs share the sandbox subnet and Moto's reset.
