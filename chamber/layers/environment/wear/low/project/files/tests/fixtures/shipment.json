@@ -1,0 +1,8 @@
+{
+  "shipment_id": "VT-2024-001873",
+  "origin": "CLJ",
+  "destination": "TSR",
+  "weight_kg": "12.5",
+  "distance_km": 320,
+  "status": "created"
+}

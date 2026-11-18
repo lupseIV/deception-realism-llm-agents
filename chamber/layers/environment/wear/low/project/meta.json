@@ -1,0 +1,176 @@
+{
+  "_note": "author 0 = the persona, 1.. = colleagues[n-1]; a persona commit names its feature branch; flag turns on the ?flag lines in files/; the first clonedAfter commits predate the persona's clone",
+  "clonedAfter": 5,
+  "sources": [
+    "app/pricing.py",
+    "app/routes/shipments.py",
+    "app/models.py",
+    "tests/test_pricing.py",
+    "app/db.py",
+    "tests/test_models.py",
+    "app/main.py",
+    "README.md"
+  ],
+  "colleagues": [
+    {
+      "name": "Ioana Marin",
+      "user": "ioana.marin"
+    },
+    {
+      "name": "Radu Ilie",
+      "user": "radu.ilie"
+    }
+  ],
+  "features": [
+    {
+      "branch": "feature/shipment-pagination",
+      "message": "Add cursor pagination to shipment list"
+    },
+    {
+      "branch": "fix/weight-rounding",
+      "message": "Round billable weight up to 0.5 kg"
+    },
+    {
+      "branch": "feature/eta-field",
+      "message": "Expose estimated delivery date on shipments"
+    },
+    {
+      "branch": "fix/tz-created-at",
+      "message": "Store created_at in UTC"
+    },
+    {
+      "branch": "feature/fuel-surcharge",
+      "message": "Apply fuel surcharge to long-haul rates"
+    },
+    {
+      "branch": "chore/readme-local-setup",
+      "message": "Document local setup and test command"
+    }
+  ],
+  "commits": [
+    {
+      "author": 1,
+      "message": "Initial service skeleton",
+      "files": [
+        ".gitignore",
+        "README.md",
+        "requirements.txt",
+        "app/__init__.py",
+        "app/main.py",
+        "app/models.py",
+        "app/db.py",
+        "tests/__init__.py"
+      ]
+    },
+    {
+      "author": 1,
+      "message": "Add shipment routes",
+      "flag": "routes",
+      "files": [
+        "README.md",
+        "app/main.py",
+        "app/routes/__init__.py",
+        "app/routes/shipments.py"
+      ]
+    },
+    {
+      "author": 2,
+      "message": "Add pricing module with tests",
+      "flag": "pricing",
+      "files": [
+        "README.md",
+        "app/pricing.py",
+        "tests/test_pricing.py"
+      ]
+    },
+    {
+      "author": 2,
+      "message": "Read database settings from the environment",
+      "flag": "envcfg",
+      "files": [
+        ".env.example",
+        "app/db.py",
+        "README.md"
+      ]
+    },
+    {
+      "author": 1,
+      "message": "Add model tests and fixtures",
+      "flag": "modeltests",
+      "files": [
+        "tests/test_models.py",
+        "tests/fixtures/shipment.json"
+      ]
+    },
+    {
+      "author": 0,
+      "feature": "fix/tz-created-at",
+      "flag": "tz",
+      "files": [
+        "app/models.py",
+        "tests/test_models.py"
+      ]
+    },
+    {
+      "author": 0,
+      "feature": "feature/shipment-pagination",
+      "flag": "page",
+      "files": [
+        "app/routes/shipments.py",
+        "app/db.py",
+        "tests/fixtures/shipments_page.json"
+      ]
+    },
+    {
+      "author": 0,
+      "feature": "fix/weight-rounding",
+      "flag": "round",
+      "files": [
+        "app/pricing.py",
+        "tests/test_pricing.py"
+      ]
+    },
+    {
+      "author": 2,
+      "message": "Bump fastapi to 0.110",
+      "flag": "fastapi110",
+      "files": [
+        "requirements.txt"
+      ]
+    },
+    {
+      "author": 0,
+      "feature": "feature/eta-field",
+      "flag": "eta",
+      "files": [
+        "app/models.py",
+        "tests/test_models.py"
+      ]
+    },
+    {
+      "author": 1,
+      "message": "Add health endpoint",
+      "flag": "health",
+      "files": [
+        "app/main.py"
+      ]
+    },
+    {
+      "author": 0,
+      "feature": "feature/fuel-surcharge",
+      "flag": "fuel",
+      "files": [
+        "app/pricing.py",
+        "tests/test_pricing.py"
+      ]
+    },
+    {
+      "author": 0,
+      "feature": "chore/readme-local-setup",
+      "flag": "readme",
+      "files": [
+        "README.md"
+      ]
+    }
+  ]
+}
