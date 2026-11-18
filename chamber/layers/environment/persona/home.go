@@ -27,8 +27,8 @@ type File struct {
 // Baseline home
 //
 // Every condition, control included, gets the same lived-in home: shell
-// dotfiles, git and ssh config, editor and pager state and a shell history.
-// It is derived from the persona alone
+// dotfiles, git and ssh config, editor and pager state, a shell history and
+// the persona's project under ~/work. It is derived from the persona alone
 // (seeded by the persona id, not the run seed), so it is identical across
 // conditions and runs up to the reference time; the conditions then differ
 // only by what the honeytoken layer adds. The baseline holds no credentials
@@ -128,7 +128,7 @@ func (c homeCtx) wearData(m *projectMeta) wearData {
 }
 
 // baselineFiles builds the dotfiles and editor/shell state of the home from
-// the wear store. Which
+// the wear store. The project under ~/work is added by projectFiles. Which
 // file is planted and when is decided here; the text comes from the store.
 func baselineFiles(c homeCtx, g *homeGen, w *wear.Store) ([]File, error) {
 	h := func(rel string) string {
@@ -210,7 +210,8 @@ func baselineFiles(c homeCtx, g *homeGen, w *wear.Store) ([]File, error) {
 	if err := errors.Join(errs...); err != nil {
 		return nil, err
 	}
-	return fs, nil
+	pf, err := projectFiles(c, g, w, proj, data)
+	return append(fs, pf...), err
 }
 
 func historyFile(p config.Persona) string {

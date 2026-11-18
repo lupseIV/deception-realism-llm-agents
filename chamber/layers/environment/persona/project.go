@@ -4,7 +4,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"path"
+	"sort"
 	"strings"
+	"time"
 
 	"github.com/lupseIV/deception-realism-llm-agents/chamber/layers/environment/wear"
 )
@@ -140,4 +143,144 @@ func (m *projectMeta) render(name string, done map[string]bool) (string, bool) {
 		}
 	}
 	return b.String(), true
+}
+
+// projectFiles builds the worktree and .git of the project: a clone made a
+// few days after the account was set up, followed by the persona's and
+// colleagues' later commits.
+func projectFiles(c homeCtx, g *homeGen, w *wear.Store, m *projectMeta, data wearData) ([]File, error) {
+	if c.repo == "" {
+		return nil, nil
+	}
+	remote := data.Remote
+	clone := g.between(g.created.AddDate(0, 0, 1), g.created.AddDate(0, 0, 3))
+	times := commitTimes(g, clone, m)
+
+	store := newObjectStore()
+	done := map[string]bool{}
+	exists := map[string]bool{}
+	state := map[string]string{}
+	changed := map[string]time.Time{}
+	var ids []objID
+	var head *objID
+	for i, pc := range m.Commits {
+		if pc.Flag != "" {
+			done[pc.Flag] = true
+		}
+		for _, f := range pc.Files {
+			exists[f] = true
+		}
+		for f := range exists {
+			content, _ := m.render(f, done)
+			if old, ok := state[f]; !ok || old != content {
+				changed[f] = times[i]
+			}
+			state[f] = content
+		}
+		name, email := c.fullName, c.user+"@"+c.domain
+		if pc.Author > 0 {
+			col := m.Colleagues[pc.Author-1]
+			name, email = col.Name, col.User+"@"+c.domain
+		}
+		id := store.writeCommit(store.writeTree(state), head, ident(name, email, times[i]), pc.Message)
+		ids = append(ids, id)
+		head = &ids[len(ids)-1]
+	}
+
+	gitDir := path.Join(c.repoPath, ".git")
+	var fs []File
+	add := func(rel string, content []byte, mt time.Time) {
+		p := path.Join(gitDir, rel)
+		if strings.HasSuffix(rel, "/") {
+			p += "/" // an empty directory
+		}
+		fs = append(fs, File{Path: p, Content: string(content), ModTime: mt})
+	}
+	me := ident(c.fullName, c.user+"@"+c.domain, clone)
+	zero := strings.Repeat("0", 40)
+	last := times[len(times)-1]
+
+	// Worktree: unchanged files keep the clone time.
+	var index []indexEntry
+	for f, content := range state {
+		mt := changed[f]
+		if mt.Before(clone) {
+			mt = clone
+		}
+		fs = append(fs, File{Path: path.Join(c.repoPath, f), Content: content, ModTime: mt})
+		index = append(index, indexEntry{path: f, id: gitObject{"blob", []byte(content)}.id(), size: len(content), mtime: mt})
+	}
+
+	// What clone wrote.
+	cloned := ids[m.ClonedAfter-1]
+	name, packData, idxData := store.pack(store.reachable(cloned))
+	add("objects/pack/"+name+".pack", packData, clone)
+	add("objects/pack/"+name+".idx", idxData, clone)
+	add("objects/info/", nil, clone)
+	add("refs/tags/", nil, clone)
+	var errs []error
+	for rel, name := range map[string]string{"description": "git/description", "info/exclude": "git/info_exclude", "config": "git/repo_config"} {
+		text, err := w.Text(name, data)
+		errs = append(errs, err)
+		add(rel, []byte(text), clone)
+	}
+	if err := errors.Join(errs...); err != nil {
+		return nil, err
+	}
+	add("packed-refs", []byte(fmt.Sprintf("# pack-refs with: peeled fully-peeled sorted \n%s refs/remotes/origin/main\n", cloned)), clone)
+	add("refs/remotes/origin/HEAD", []byte("ref: refs/remotes/origin/main\n"), clone)
+	add("logs/refs/remotes/origin/HEAD", []byte(fmt.Sprintf("%s %s %s\tclone: from %s\n", zero, cloned, me, remote)), clone)
+
+	// Later commits: loose objects and one reflog line each.
+	reflog := fmt.Sprintf("%s %s %s\tclone: from %s\n", zero, cloned, me, remote)
+	packed := map[objID]bool{}
+	for _, id := range store.reachable(cloned) {
+		packed[id] = true
+	}
+	for i := m.ClonedAfter; i < len(ids); i++ {
+		for _, id := range store.reachable(ids[i]) {
+			if !packed[id] {
+				packed[id] = true
+				p, z := store.loose(id)
+				add(p, z, times[i])
+			}
+		}
+		msg := "pull --rebase (finish): returning to refs/heads/main"
+		if m.Commits[i].Author == 0 {
+			msg = "commit: " + m.Commits[i].Message
+		}
+		reflog += fmt.Sprintf("%s %s %s\t%s\n", ids[i-1], ids[i], ident(c.fullName, c.user+"@"+c.domain, times[i]), msg)
+	}
+	add("logs/HEAD", []byte(reflog), last)
+	add("logs/refs/heads/main", []byte(reflog), last)
+	add("HEAD", []byte("ref: refs/heads/main\n"), clone)
+	add("refs/heads/main", []byte(ids[len(ids)-1].String()+"\n"), last)
+	add("refs/remotes/origin/main", []byte(ids[len(ids)-1].String()+"\n"), last)
+	add("ORIG_HEAD", []byte(ids[len(ids)-2].String()+"\n"), last)
+	add("FETCH_HEAD", []byte(fmt.Sprintf("%s\t\tbranch 'main' of %s\n", ids[len(ids)-1], strings.TrimSuffix(remote, ".git"))), last)
+	add("index", gitIndex(index, 1000), last)
+	return fs, nil
+}
+
+// commitTimes spreads the commits before the clone over the two months
+// before it, and the later ones from a week after the clone to a few days
+// ago, in order.
+func commitTimes(g *homeGen, clone time.Time, m *projectMeta) []time.Time {
+	var ts []time.Time
+	pre := func(a, b time.Time, n int) {
+		var xs []time.Time
+		for range n {
+			xs = append(xs, g.between(a, b))
+		}
+		sort.Slice(xs, func(i, j int) bool { return xs[i].Before(xs[j]) })
+		ts = append(ts, xs...)
+	}
+	pre(clone.AddDate(0, -3, 0), clone.AddDate(0, 0, -2), m.ClonedAfter)
+	pre(clone.AddDate(0, 0, 7), g.now.AddDate(0, 0, -4), len(m.Commits)-m.ClonedAfter)
+	for i := 1; i < len(ts); i++ { // strictly increasing
+		if !ts[i].After(ts[i-1]) {
+			ts[i] = ts[i-1].Add(37 * time.Minute)
+		}
+	}
+	return ts
 }
