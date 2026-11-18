@@ -123,3 +123,31 @@ func TestListenOnlyOnce(t *testing.T) {
 		t.Fatalf("want error for a second service, got %v", err)
 	}
 }
+
+func TestAppendFile(t *testing.T) {
+	r := New(nil)
+	t1 := time.Date(2026, 6, 1, 9, 0, 0, 0, time.UTC)
+	t2 := t1.Add(48 * time.Hour)
+	if err := r.WriteFile(ctx, "/home/u/.bash_history", []byte("ls\n"), t1); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.AppendFile(ctx, "/home/u/./.bash_history", []byte("aws s3 ls\n"), t2); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.AppendFile(ctx, "/home/u/new", []byte("x"), t1); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.AppendFile(ctx, "/home/u/.bash_history", []byte("git pull\n"), t1); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.AppendFile(ctx, "rel", nil, t1); err == nil {
+		t.Error("relative path must fail")
+	}
+	f := r.files["/home/u/.bash_history"]
+	if string(f.data) != "ls\naws s3 ls\ngit pull\n" || !f.mtime.Equal(t2) {
+		t.Errorf("appended file: %q %v", f.data, f.mtime)
+	}
+	if string(r.files["/home/u/new"].data) != "x" {
+		t.Error("append must create a missing file")
+	}
+}

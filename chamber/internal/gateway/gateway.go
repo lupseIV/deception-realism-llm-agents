@@ -57,6 +57,23 @@ func (r *Runtime) WriteFile(_ context.Context, p string, data []byte, mtime time
 	return nil
 }
 
+// AppendFile adds data to the end of a recorded file, or records a new one.
+// The file keeps the later of its old and the given mtime.
+func (r *Runtime) AppendFile(_ context.Context, p string, data []byte, mtime time.Time) error {
+	if !path.IsAbs(p) {
+		return fmt.Errorf("path %q is not absolute", p)
+	}
+	p = path.Clean(p)
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	old := r.files[p]
+	if old.mtime.After(mtime) {
+		mtime = old.mtime
+	}
+	r.files[p] = file{data: append(append([]byte(nil), old.data...), data...), mtime: mtime}
+	return nil
+}
+
 // Listen returns the TLS listener for the network layer. Only one network
 // service can listen, because all AWS names resolve to the gateway.
 func (r *Runtime) Listen(_ context.Context, serviceID string) (net.Listener, error) {

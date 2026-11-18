@@ -53,7 +53,8 @@ type testRuntime struct {
 	addr string
 }
 
-func (*testRuntime) WriteFile(context.Context, string, []byte, time.Time) error { return nil }
+func (*testRuntime) WriteFile(context.Context, string, []byte, time.Time) error  { return nil }
+func (*testRuntime) AppendFile(context.Context, string, []byte, time.Time) error { return nil }
 
 func (r *testRuntime) Listen(context.Context, string) (net.Listener, error) {
 	ln, err := net.Listen("tcp", "127.0.0.1:0")

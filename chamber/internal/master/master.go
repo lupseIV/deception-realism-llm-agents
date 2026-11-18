@@ -23,7 +23,12 @@ const RealismKey = "realism"
 // Runtime is what masters use to act on the sandbox. Implemented by the
 // container runtime; tests use a fake.
 type Runtime interface {
+	// WriteFile plants a file, replacing an earlier one at the same path.
 	WriteFile(ctx context.Context, path string, data []byte, mtime time.Time) error
+	// AppendFile adds data to the end of a planted file (or creates it) and
+	// sets its mtime. Layers use it to add to a file another layer owns, e.g.
+	// honeytoken lines on top of the environment's shell history.
+	AppendFile(ctx context.Context, path string, data []byte, mtime time.Time) error
 }
 
 // Master is the common interface of every node in the tree.

@@ -69,6 +69,10 @@ func (r *fakeRuntime) WriteFile(_ context.Context, p string, _ []byte, _ time.Ti
 	return nil
 }
 
+func (r *fakeRuntime) AppendFile(ctx context.Context, p string, b []byte, mt time.Time) error {
+	return r.WriteFile(ctx, p, b, mt)
+}
+
 type tree struct {
 	root           *GroupMaster
 	persona, creds *fakeLayer

@@ -68,7 +68,8 @@ func fakeFactory(seen map[string]*recorder, kinds ...string) Factory {
 
 type nopRuntime struct{}
 
-func (nopRuntime) WriteFile(context.Context, string, []byte, time.Time) error { return nil }
+func (nopRuntime) WriteFile(context.Context, string, []byte, time.Time) error  { return nil }
+func (nopRuntime) AppendFile(context.Context, string, []byte, time.Time) error { return nil }
 
 func load(t *testing.T, name string) config.Condition {
 	t.Helper()

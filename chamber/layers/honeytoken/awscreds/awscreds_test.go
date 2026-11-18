@@ -230,6 +230,13 @@ func (m *memRuntime) WriteFile(_ context.Context, p string, b []byte, _ time.Tim
 	return nil
 }
 
+func (m *memRuntime) AppendFile(_ context.Context, p string, b []byte, _ time.Time) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.files[p] += string(b)
+	return nil
+}
+
 func TestThroughAssembler(t *testing.T) {
 	c, err := config.Load(filepath.Join(repo, "configs/pilot/ht-high-net-faithful.xml"), config.Options{BaseDir: repo})
 	if err != nil {
