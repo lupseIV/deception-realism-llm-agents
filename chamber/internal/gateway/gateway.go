@@ -39,6 +39,7 @@ type Runtime struct {
 type file struct {
 	data  []byte
 	mtime time.Time
+	dir   bool
 }
 
 // New returns a runtime that serves TLS with cfg.
@@ -46,14 +47,20 @@ func New(cfg *tls.Config) *Runtime {
 	return &Runtime{TLS: cfg, ListenAddr: ":443", files: map[string]file{}}
 }
 
-// WriteFile records a file for the bundle. The path must be absolute.
+// WriteFile records a file for the bundle. The path must be absolute. A path
+// ending in "/" records an empty directory with that mtime (data must be
+// empty); directories that only hold files need no entry of their own.
 func (r *Runtime) WriteFile(_ context.Context, p string, data []byte, mtime time.Time) error {
 	if !path.IsAbs(p) {
 		return fmt.Errorf("path %q is not absolute", p)
 	}
+	dir := strings.HasSuffix(p, "/")
+	if dir && len(data) > 0 {
+		return fmt.Errorf("directory %q cannot have content", p)
+	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	r.files[path.Clean(p)] = file{data: append([]byte(nil), data...), mtime: mtime}
+	r.files[path.Clean(p)] = file{data: append([]byte(nil), data...), mtime: mtime, dir: dir}
 	return nil
 }
 
@@ -135,22 +142,39 @@ func (r *Runtime) Bundle(s Setup) ([]byte, error) {
 		return nil, fmt.Errorf("uid %q: %w", s.UID, err)
 	}
 
-	paths := make([]string, 0, len(r.files))
-	for p := range r.files {
-		paths = append(paths, p)
+	// Directories in the home get their own entries, so they keep a past
+	// mtime (the newest file below them) instead of the install time. Entries
+	// go out in depth-first path order: tar fixes a directory's mtime once it
+	// leaves the directory, so every file must follow its directory entry.
+	dirs := homeDirs(r.files, s.Home)
+	type entry struct {
+		key, path string
+		dir       bool
 	}
-	sort.Strings(paths)
-	for _, p := range paths {
-		f := r.files[p]
+	var entries []entry
+	for d := range dirs {
+		entries = append(entries, entry{key: d + "/", path: d, dir: true})
+	}
+	for p, f := range r.files {
+		if !f.dir {
+			entries = append(entries, entry{key: p, path: p})
+		}
+	}
+	sort.Slice(entries, func(i, j int) bool { return entries[i].key < entries[j].key })
+	for _, e := range entries {
+		if e.dir {
+			if err := tw.WriteHeader(&tar.Header{Typeflag: tar.TypeDir, Name: strings.TrimPrefix(Staging+"/root"+e.path, "/") + "/",
+				Mode: dirMode(e.path), ModTime: dirs[e.path], Uid: uid, Gid: uid, Format: tar.FormatPAX}); err != nil {
+				return nil, err
+			}
+			continue
+		}
+		f := r.files[e.path]
 		owner := 0
-		if p == s.Home || strings.HasPrefix(p, s.Home+"/") {
+		if e.path == s.Home || strings.HasPrefix(e.path, s.Home+"/") {
 			owner = uid
 		}
-		mode := int64(0o644)
-		if strings.Contains(p, "/.aws/") || strings.HasSuffix(p, "_history") {
-			mode = 0o600
-		}
-		if err := add(Staging+"/root"+p, f.data, mode, f.mtime, owner); err != nil {
+		if err := add(Staging+"/root"+e.path, f.data, fileMode(e.path), f.mtime, owner); err != nil {
 			return nil, err
 		}
 	}
@@ -166,6 +190,45 @@ func (r *Runtime) Bundle(s Setup) ([]byte, error) {
 		return nil, err
 	}
 	return buf.Bytes(), nil
+}
+
+// homeDirs returns every directory from home down to the recorded paths below
+// it, with its mtime: the recorded one for an explicit directory, otherwise
+// the newest mtime below it.
+func homeDirs(files map[string]file, home string) map[string]time.Time {
+	dirs := map[string]time.Time{}
+	newest := func(d string, t time.Time) {
+		if cur, ok := dirs[d]; !ok || t.After(cur) {
+			dirs[d] = t
+		}
+	}
+	for p, f := range files {
+		if p != home && !strings.HasPrefix(p, home+"/") {
+			continue
+		}
+		if f.dir {
+			newest(p, f.mtime)
+		}
+		for d := path.Dir(p); d == home || strings.HasPrefix(d, home+"/"); d = path.Dir(d) {
+			newest(d, f.mtime)
+		}
+	}
+	for p, f := range files { // an explicit directory keeps its own mtime
+		if f.dir && dirs[p].After(f.mtime) {
+			dirs[p] = f.mtime
+		}
+	}
+	return dirs
+}
+
+func dirMode(string) int64 { return 0o755 }
+
+// fileMode keeps credentials and shell history private.
+func fileMode(p string) int64 {
+	if strings.Contains(p, "/.aws/") || strings.HasSuffix(p, "_history") {
+		return 0o600
+	}
+	return 0o644
 }
 
 // setupScript creates the user with the distribution's home skeleton (also

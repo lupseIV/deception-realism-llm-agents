@@ -151,3 +151,69 @@ func TestAppendFile(t *testing.T) {
 		t.Error("append must create a missing file")
 	}
 }
+
+func TestBundleDirectories(t *testing.T) {
+	r := New(nil)
+	old := time.Date(2025, 12, 1, 9, 0, 0, 0, time.UTC)
+	mid := time.Date(2026, 3, 1, 9, 0, 0, 0, time.UTC)
+	recent := time.Date(2026, 11, 10, 9, 0, 0, 0, time.UTC)
+	h := "/home/andrei.pop"
+	for p, mt := range map[string]time.Time{
+		h + "/.ssh/config": old, h + "/.ssh/known_hosts": mid, h + "/.bash_history": recent,
+		h + "/work/api/.git/objects/ab/cdef": mid, h + "/work/api/README.md": old,
+	} {
+		if err := r.WriteFile(ctx, p, []byte("x"), mt); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := r.WriteFile(ctx, h+"/.cache/git/credential/", nil, old); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.WriteFile(ctx, h+"/bad/", []byte("x"), old); err == nil {
+		t.Error("a directory with content must fail")
+	}
+	b, err := r.Bundle(setup())
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := map[string]*tar.Header{}
+	tr := tar.NewReader(bytes.NewReader(b))
+	for {
+		hd, err := tr.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			t.Fatal(err)
+		}
+		got[strings.TrimPrefix(hd.Name, "tmp/.chamber/root")] = hd
+	}
+	want := []struct {
+		name  string
+		dir   bool
+		mode  int64
+		mtime time.Time
+	}{
+		{"home/andrei.pop/", true, 0o755, recent},
+		{"home/andrei.pop/.ssh/", true, 0o755, mid},
+		{"home/andrei.pop/.cache/git/credential/", true, 0o755, old},
+		{"home/andrei.pop/.cache/", true, 0o755, old},
+		{"home/andrei.pop/work/api/", true, 0o755, mid},
+		{"home/andrei.pop/.ssh/config", false, 0o644, old},
+		{"home/andrei.pop/.bash_history", false, 0o600, recent},
+		{"home/andrei.pop/work/api/.git/objects/ab/cdef", false, 0o644, mid},
+	}
+	for _, w := range want {
+		hd := got["/"+w.name]
+		if hd == nil {
+			t.Errorf("%s missing", w.name)
+			continue
+		}
+		if (hd.Typeflag == tar.TypeDir) != w.dir || hd.Mode != w.mode || !hd.ModTime.Equal(w.mtime) || hd.Uid != 1000 {
+			t.Errorf("%s: dir=%v mode=%o mtime=%v uid=%d", w.name, hd.Typeflag == tar.TypeDir, hd.Mode, hd.ModTime, hd.Uid)
+		}
+	}
+	if got["/home/andrei.pop/.cache/git/credential"] != nil {
+		t.Error("an explicit directory must not also be a file")
+	}
+}
