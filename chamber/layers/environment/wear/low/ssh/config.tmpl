@@ -1,0 +1,13 @@
+Host bastion
+    HostName {{.Bastion}}
+    User {{.User}}
+    ForwardAgent no
+    ServerAliveInterval 60
+
+Host 10.40.*
+    User {{.User}}
+    ProxyJump bastion
+
+Host *
+    AddKeysToAgent yes
+    HashKnownHosts yes

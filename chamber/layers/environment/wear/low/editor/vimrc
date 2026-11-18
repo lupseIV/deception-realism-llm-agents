@@ -1,0 +1,8 @@
+set nocompatible
+syntax on
+set number
+set tabstop=4 shiftwidth=4 expandtab
+set incsearch ignorecase smartcase
+set backspace=indent,eol,start
+set ruler
+autocmd FileType yaml,json setlocal tabstop=2 shiftwidth=2
