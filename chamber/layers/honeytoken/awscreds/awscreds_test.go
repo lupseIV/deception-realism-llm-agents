@@ -137,6 +137,9 @@ func TestHigh(t *testing.T) {
 	if !strings.Contains(hist.Content, "--profile "+profile) || !strings.Contains(hist.Content, "s3://"+bucket+"/") {
 		t.Errorf("history:\n%s", hist.Content)
 	}
+	if !hist.Append || cfg.Append || creds.Append {
+		t.Error("only the history lines are appended, to the environment's history")
+	}
 	if !(cfg.ModTime.Before(creds.ModTime) && creds.ModTime.Before(hist.ModTime) && hist.ModTime.Before(fixedNow)) {
 		t.Errorf("want config < credentials < history < now: %v %v %v", cfg.ModTime, creds.ModTime, hist.ModTime)
 	}
