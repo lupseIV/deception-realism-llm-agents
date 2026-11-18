@@ -1,0 +1,24 @@
+# Commands typed between edits in the shell history, one per line.
+ls -la
+ls app/
+cat README.md
+less README.md
+grep -rn TODO app/
+grep -rn shipment_id app/ tests/
+jq . tests/fixtures/shipment.json
+jq '.items | length' tests/fixtures/shipments_page.json
+python3
+df -h
+free -h
+uname -a
+history | grep unittest
+ssh bastion
+git branch -a
+git log -p -n 3 app/pricing.py
+git fetch --prune
+curl -s localhost:8000/health
+curl -s 'localhost:8000/shipments?limit=5' | jq '.[0]'
+vim ~/.bashrc
+source ~/.bashrc
+cd ~/work
+cd ~/work/{{.Repo}}
