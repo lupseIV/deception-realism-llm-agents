@@ -195,13 +195,13 @@ func TestBundleDirectories(t *testing.T) {
 		mtime time.Time
 	}{
 		{"home/andrei.pop/", true, 0o755, recent},
-		{"home/andrei.pop/.ssh/", true, 0o755, mid},
-		{"home/andrei.pop/.cache/git/credential/", true, 0o755, old},
+		{"home/andrei.pop/.ssh/", true, 0o700, mid},
+		{"home/andrei.pop/.cache/git/credential/", true, 0o700, old},
 		{"home/andrei.pop/.cache/", true, 0o755, old},
 		{"home/andrei.pop/work/api/", true, 0o755, mid},
 		{"home/andrei.pop/.ssh/config", false, 0o644, old},
 		{"home/andrei.pop/.bash_history", false, 0o600, recent},
-		{"home/andrei.pop/work/api/.git/objects/ab/cdef", false, 0o644, mid},
+		{"home/andrei.pop/work/api/.git/objects/ab/cdef", false, 0o444, mid},
 	}
 	for _, w := range want {
 		hd := got["/"+w.name]

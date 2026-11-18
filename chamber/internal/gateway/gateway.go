@@ -221,11 +221,25 @@ func homeDirs(files map[string]file, home string) map[string]time.Time {
 	return dirs
 }
 
-func dirMode(string) int64 { return 0o755 }
+// dirMode follows what the tools create: ssh and the git credential cache
+// keep their folders private.
+func dirMode(d string) int64 {
+	switch path.Base(d) {
+	case ".ssh", "credential", ".gnupg":
+		return 0o700
+	}
+	return 0o755
+}
 
-// fileMode keeps credentials and shell history private.
+// fileMode follows what the owning tool creates: secrets, histories and
+// editor state are private, git objects are read-only.
 func fileMode(p string) int64 {
-	if strings.Contains(p, "/.aws/") || strings.HasSuffix(p, "_history") {
+	base := path.Base(p)
+	switch {
+	case strings.Contains(p, "/.git/objects/"):
+		return 0o444
+	case strings.Contains(p, "/.aws/"), strings.Contains(p, "/.ssh/") && base != "known_hosts" && base != "config",
+		strings.HasSuffix(base, "_history"), base == ".viminfo", base == ".lesshst":
 		return 0o600
 	}
 	return 0o644
