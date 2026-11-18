@@ -1,0 +1,6 @@
+.idea/
+.vscode/
+*.swp
+__pycache__/
+.venv/
+.env.local
