@@ -43,8 +43,12 @@ func TestLowExportsIdentity(t *testing.T) {
 			t.Errorf("%s = %q, want %q", k, out[k], v)
 		}
 	}
-	if err := l.Start(ctx, nil, nil); err != nil {
+	rt := &memRuntime{files: map[string]string{}}
+	if err := l.Start(ctx, rt, nil); err != nil {
 		t.Fatal(err)
+	}
+	if len(rt.files) == 0 {
+		t.Error("low realism must plant the baseline home")
 	}
 }
 
@@ -82,7 +86,7 @@ func TestControlThroughAssembler(t *testing.T) {
 	}
 	seed := uint64(1)
 	res, err := assemble.Build(c, assemble.Run{ID: "r1", Seed: &seed},
-		assemble.Factory{Kind: New}, repo)
+		assemble.Factory{Kind: func(s assemble.LayerSpec) (master.Layer, error) { return New(s) }}, repo)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -13,7 +13,9 @@ import (
 // Moto URL used by AWS network layers in faithful mode.
 func Factory(backend string) assemble.Factory {
 	return assemble.Factory{
-		persona.Kind: persona.New,
+		persona.Kind: func(s assemble.LayerSpec) (master.Layer, error) {
+			return persona.New(s)
+		},
 		awscreds.Kind: func(s assemble.LayerSpec) (master.Layer, error) {
 			return awscreds.New(s)
 		},
