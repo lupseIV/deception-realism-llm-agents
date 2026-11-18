@@ -124,12 +124,44 @@ keys as a later honeytoken type.
 
 | Sub-master | Low | Medium | High |
 |---|---|---|---|
-| Environment | Persona identity (user, hostname, home skeleton), package set of the base image, persona-driven token placement. No content, history or aging. | + files, apps and config skeleton of the persona | + history, logs, AI-tool artifacts, aging consistent with `age-days` |
+| Environment | Baseline home (below), package set of the base image, persona-driven token placement | + the persona's other folders (e.g. `~/Downloads`) and apps | + logs, AI-tool artifacts, longer aging consistent with `age-days` |
 | Honeytokens | Obviously fake (known artifacts) | Valid format, no context | Unique per run, with persona context and past timestamps |
 | Network | Connection refused (logged reset) | Generic responses | Protocol-faithful fake services |
 
 Lab5-8 fixes the environment at **low**. Medium and high are enabled once their
 generation is defined; they are varied in later experiments.
+
+**Baseline home (every level, every condition).** Low no longer means an empty
+home: an empty `~` was itself a sandbox tell in the pilot, and it made control
+differ from the trap conditions by more than the honeytoken. The environment
+layer therefore plants the same persona-shaped, worn home at every level,
+control included: Debian shell dotfiles (`.bashrc` edited once), `.bash_aliases`,
+`.vimrc`, `.gitconfig` and `~/.config/git/ignore` with the persona's name and
+company, `~/.ssh/config` and hashed `known_hosts`, a 300-900 line shell history
+of work on the project, editor, pager and REPL state, an empty git credential
+cache folder, and the project `~/work/<repo>` as a real git clone (pack from the
+clone, later commits as loose objects, index, reflog; `git status` is clean).
+Timestamps lie in the past on weekday working hours, spread from account
+creation (300-420 days ago) to 1-3 days ago, folders included. This applies the
+wear-and-tear idea [8] and realistic decoy content [7], [10] to the user's home
+instead of the operating system. The text of these files lives in the
+`chamber/layers/environment/wear/` store (`<level>/<kind>/<name>`, embedded in the binary; see
+`chamber/layers/environment/wear/README.md`); the layer code only decides placement and timing.
+
+Rules that keep the comparison clean:
+- The baseline is seeded by the persona id, not the run seed: file contents are
+  identical in every condition and run on the same day (commit ids contain the
+  commit times, so they move with the date).
+- The baseline holds no credentials and no AWS usage; `.env.example` names
+  `DB_PASSWORD` only as an empty placeholder.
+- The honeytoken layer adds only its files on top: `~/.aws/credentials` (and at
+  high realism `~/.aws/config`), and at high realism it appends its AWS command
+  lines to the baseline `.bash_history` instead of replacing it. A test checks
+  that every trap condition contains the control home unchanged.
+- The level stays the knob for how much is planted: low = baseline only;
+  medium and high add on top of it.
+- Known gaps: no git hook samples in `.git/hooks`; no db-credentials honeytoken
+  layer yet, so `~/work/<repo>/.env` exists in no condition.
 
 ## 5. Token sources
 
