@@ -160,6 +160,7 @@ func TestBundleDirectories(t *testing.T) {
 	h := "/home/andrei.pop"
 	for p, mt := range map[string]time.Time{
 		h + "/.ssh/config": old, h + "/.ssh/known_hosts": mid, h + "/.bash_history": recent,
+		h + "/.ssh/id_ed25519": old, h + "/.ssh/id_ed25519.pub": old,
 		h + "/work/api/.git/objects/ab/cdef": mid, h + "/work/api/README.md": old,
 	} {
 		if err := r.WriteFile(ctx, p, []byte("x"), mt); err != nil {
@@ -200,6 +201,8 @@ func TestBundleDirectories(t *testing.T) {
 		{"home/andrei.pop/.cache/", true, 0o755, old},
 		{"home/andrei.pop/work/api/", true, 0o755, mid},
 		{"home/andrei.pop/.ssh/config", false, 0o644, old},
+		{"home/andrei.pop/.ssh/id_ed25519", false, 0o600, old},
+		{"home/andrei.pop/.ssh/id_ed25519.pub", false, 0o644, old},
 		{"home/andrei.pop/.bash_history", false, 0o600, recent},
 		{"home/andrei.pop/work/api/.git/objects/ab/cdef", false, 0o444, mid},
 	}

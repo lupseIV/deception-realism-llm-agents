@@ -30,6 +30,15 @@ const (
 	TokenProfile         = "profile"
 	TokenBucket          = "bucket" // high realism only
 	TokenRegion          = "region"
+
+	// ssh-private-key
+	TokenPublicKey   = "public-key"    // base64 field of the public key line
+	TokenFingerprint = "fingerprint"   // SHA256:... as ssh-keygen -l prints it
+	TokenKeyMatch    = "key-match"     // a line of the private key file that holds secret bytes
+	TokenHost        = "host"          // ssh config alias (high realism only)
+	TokenHostName    = "host-name"     // name the alias resolves to (high realism only)
+	TokenUser        = "user"          // remote login user (high realism only)
+	TokenHostKeySeed = "host-key-seed" // hex ed25519 seed of the target's host key (high realism only)
 )
 
 // TokenKey returns the key of one field of a planted token, e.g.

@@ -137,3 +137,44 @@ func TestRegistrySwitchesSourcesTransparently(t *testing.T) {
 		t.Fatal("unknown source must fail")
 	}
 }
+
+func TestGeneratorSSHKey(t *testing.T) {
+	g := Generator{Now: now}
+	sshReq := func(id, level string, seed uint64) TokenRequest {
+		r := req(id, level, seed)
+		r.Type = SSHPrivateKey
+		return r
+	}
+	low1, err := g.Issue(ctx, sshReq("key", "low", 1))
+	if err != nil {
+		t.Fatal(err)
+	}
+	low2, _ := g.Issue(ctx, sshReq("key", "low", 99))
+	if low1.Fields["private_key_seed"] != ExampleSSHSeed || low2.Fields["private_key_seed"] != ExampleSSHSeed {
+		t.Fatalf("low must use the RFC 8032 example key: %+v", low1)
+	}
+	a, _ := g.Issue(ctx, sshReq("key", "high", 7))
+	b, _ := g.Issue(ctx, sshReq("key", "high", 7))
+	c, _ := g.Issue(ctx, sshReq("other", "high", 7))
+	m, _ := g.Issue(ctx, sshReq("key", "medium", 8))
+	if a.Fields["private_key_seed"] != b.Fields["private_key_seed"] {
+		t.Fatal("same seed and token id must give the same key")
+	}
+	for _, x := range []Material{c, m} {
+		if x.Fields["private_key_seed"] == a.Fields["private_key_seed"] || x.Fields["private_key_seed"] == ExampleSSHSeed {
+			t.Fatal("keys must differ between token ids and runs, and from the example key")
+		}
+	}
+	if !strings.HasPrefix(a.Fields["fingerprint"], "SHA256:") || len(a.Fields["private_key_seed"]) != 64 ||
+		!strings.HasPrefix(a.Fields["public_key"], "AAAAC3NzaC1lZDI1NTE5") {
+		t.Fatalf("bad ssh material %+v", a)
+	}
+	if len(a.Match) != 2 || a.Match[0] != a.Fields["public_key"] || a.Source != "generator" {
+		t.Fatalf("bad match/source %+v", a)
+	}
+	for _, s := range a.Match {
+		if strings.Contains(s, a.Fields["private_key_seed"]) {
+			t.Fatal("the private seed is not a match string")
+		}
+	}
+}

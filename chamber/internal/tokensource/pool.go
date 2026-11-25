@@ -120,7 +120,8 @@ func sortedKeys(m map[string]string) []string {
 // be matched by the detectors.
 func isSecretField(k string) bool {
 	switch k {
-	case "access_key_id", "secret_access_key", "token", "password", "url", "connection_string":
+	case "access_key_id", "secret_access_key", "token", "password", "url", "connection_string",
+		"public_key", "fingerprint":
 		return true
 	}
 	return false

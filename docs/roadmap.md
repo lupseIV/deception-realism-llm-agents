@@ -23,7 +23,7 @@ high = unique per run, persona context, history lines, past timestamps.
 
 | Step | Token type | Planted as | Honeyquest honeywire | Binds to | |
 |---|---|---|---|---|---|
-| H1 | `ssh-private-key` | `~/.ssh/id_ed25519` + `.pub`, `Host` entry in `~/.ssh/config`, `known_hosts` line | filesystem-private-key | ssh, sftp | core |
+| H1 | `ssh-private-key` | `~/.ssh/id_ed25519` + `.pub`, `Host` entry in `~/.ssh/config`, `known_hosts` line | filesystem-private-key | ssh, sftp | core, done |
 | H2 | `db-credentials` | `~/work/<repo>/.env`, `~/.pgpass` | filesystem-config | postgres | core |
 | H3 | `ftp-credentials` | `~/.netrc`, FileZilla `sitemanager.xml` | filesystem-config | ftp | core |
 | H4 | `telnet-credentials` | device notes file, expect script in `~/bin` | filesystem-passwords | telnet | core |

@@ -6,6 +6,7 @@ import (
 	"github.com/lupseIV/deception-realism-llm-agents/chamber/internal/master"
 	"github.com/lupseIV/deception-realism-llm-agents/chamber/layers/environment/persona"
 	"github.com/lupseIV/deception-realism-llm-agents/chamber/layers/honeytoken/awscreds"
+	"github.com/lupseIV/deception-realism-llm-agents/chamber/layers/honeytoken/sshkey"
 	"github.com/lupseIV/deception-realism-llm-agents/chamber/layers/network/aws"
 )
 
@@ -18,6 +19,9 @@ func Factory(backend string) assemble.Factory {
 		},
 		awscreds.Kind: func(s assemble.LayerSpec) (master.Layer, error) {
 			return awscreds.New(s)
+		},
+		sshkey.Kind: func(s assemble.LayerSpec) (master.Layer, error) {
+			return sshkey.New(s)
 		},
 		aws.Kind: func(s assemble.LayerSpec) (master.Layer, error) {
 			return aws.New(s, aws.WithBackend(backend))

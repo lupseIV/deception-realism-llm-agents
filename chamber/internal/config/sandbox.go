@@ -83,11 +83,12 @@ const (
 	TokenTypeAWSCredentials TokenType = "aws-credentials"
 	TokenTypeHFToken        TokenType = "hf-token"
 	TokenTypeDBCredentials  TokenType = "db-credentials"
+	TokenTypeSSHPrivateKey  TokenType = "ssh-private-key"
 )
 
 func (t TokenType) Valid() bool {
 	switch t {
-	case TokenTypeAWSCredentials, TokenTypeHFToken, TokenTypeDBCredentials:
+	case TokenTypeAWSCredentials, TokenTypeHFToken, TokenTypeDBCredentials, TokenTypeSSHPrivateKey:
 		return true
 	}
 	return false
@@ -177,7 +178,7 @@ var idPattern = regexp.MustCompile(`^[a-z][a-z0-9-]{0,62}$`)
 // steps only add entries here.
 var (
 	supportedEnvRealism   = map[EnvRealismLevel]bool{EnvRealismLevelLow: true}
-	supportedTokenTypes   = map[TokenType]bool{TokenTypeAWSCredentials: true}
+	supportedTokenTypes   = map[TokenType]bool{TokenTypeAWSCredentials: true, TokenTypeSSHPrivateKey: true}
 	supportedServiceTypes = map[NetworkServiceType]bool{NetworkServiceTypeAWS: true}
 )
 

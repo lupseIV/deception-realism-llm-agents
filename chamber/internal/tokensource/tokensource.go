@@ -15,6 +15,7 @@ import (
 // Token types.
 const (
 	AWSCredentials = "aws-credentials"
+	SSHPrivateKey  = "ssh-private-key"
 )
 
 // TokenRequest describes the token a layer needs for one run.

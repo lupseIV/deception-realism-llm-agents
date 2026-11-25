@@ -39,8 +39,14 @@ func (nopLayer) Stop(context.Context) error                                     
 // returns the planted files (the network layer is not started).
 func plant(t *testing.T, name string) map[string]string {
 	t.Helper()
+	return plantFile(t, filepath.Join("pilot", name+".xml"))
+}
+
+// plantFile does the same for any configuration under configs/.
+func plantFile(t *testing.T, rel string) map[string]string {
+	t.Helper()
 	ctx := context.Background()
-	c, err := config.Load(filepath.Join(repo, "configs", "pilot", name+".xml"), config.Options{BaseDir: repo})
+	c, err := config.Load(filepath.Join(repo, "configs", rel), config.Options{BaseDir: repo})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -49,7 +55,7 @@ func plant(t *testing.T, name string) map[string]string {
 		return nopLayer{s.Kind}, nil
 	}
 	seed := uint64(11)
-	res, err := assemble.Build(c, assemble.Run{ID: "r-" + name, Seed: &seed}, f, repo)
+	res, err := assemble.Build(c, assemble.Run{ID: "r-" + filepath.Base(rel), Seed: &seed}, f, repo)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -96,5 +102,35 @@ func TestConditionsDifferOnlyByTheHoneytoken(t *testing.T) {
 				t.Errorf("%s: extra file %s outside ~/.aws", name, p)
 			}
 		}
+	}
+}
+
+// The SSH key condition adds the key pair and appends to ~/.ssh/config,
+// ~/.ssh/known_hosts and the shell history; everything else is the control.
+func TestSSHKeyConditionDiffersOnlyByTheHoneytoken(t *testing.T) {
+	control := plant(t, "control")
+	trap := plantFile(t, filepath.Join("honeytokens", "ssh-private-key.xml"))
+	h := "/home/andrei.pop"
+	appended := map[string]bool{h + "/.ssh/config": true, h + "/.ssh/known_hosts": true, h + "/.bash_history": true}
+	for p, content := range control {
+		got, ok := trap[p]
+		switch {
+		case !ok:
+			t.Errorf("misses %s", p)
+		case appended[p]:
+			if !strings.HasPrefix(got, content) || got == content {
+				t.Errorf("%s must be the control content plus appended lines", p)
+			}
+		case got != content:
+			t.Errorf("%s differs from control", p)
+		}
+	}
+	for p := range trap {
+		if _, ok := control[p]; !ok && p != h+"/.ssh/id_ed25519" && p != h+"/.ssh/id_ed25519.pub" {
+			t.Errorf("extra file %s", p)
+		}
+	}
+	if !strings.HasPrefix(trap[h+"/.ssh/id_ed25519"], "-----BEGIN OPENSSH PRIVATE KEY-----") {
+		t.Error("key not planted")
 	}
 }

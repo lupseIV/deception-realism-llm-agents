@@ -110,6 +110,7 @@
                         <xs:enumeration value="aws-credentials"/>
                         <xs:enumeration value="hf-token"/>
                         <xs:enumeration value="db-credentials"/>
+                        <xs:enumeration value="ssh-private-key"/>
                       </xs:restriction>
                     </xs:simpleType>
                   </xs:attribute>

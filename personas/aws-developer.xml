@@ -25,5 +25,6 @@
   <token-affinity>
     <token type="aws-credentials" path="~/.aws/credentials"/>
     <token type="db-credentials" path="~/work/valtera-shipments-api/.env"/>
+    <token type="ssh-private-key" path="~/.ssh/id_ed25519"/>
   </token-affinity>
 </persona>

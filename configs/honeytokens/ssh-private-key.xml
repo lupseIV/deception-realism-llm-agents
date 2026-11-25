@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- SSH private key honeytoken, no network section yet: the ssh service is
+     step N2 of docs/roadmap.md. Change realism to low or medium to compare. -->
+<sandbox id="ht-ssh-private-key" egress="blocked"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="../../schema/sandbox.xsd">
+  <base image="chamber/base:0.1" runtime="runsc"/>
+  <sources>
+    <source id="own" type="generator"/>
+  </sources>
+  <environment persona="aws-developer" realism="low"/>
+  <honeytokens realism="high">
+    <token id="key" type="ssh-private-key" source="own"/>
+  </honeytokens>
+</sandbox>

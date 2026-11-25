@@ -232,12 +232,15 @@ func dirMode(d string) int64 {
 }
 
 // fileMode follows what the owning tool creates: secrets, histories and
-// editor state are private, git objects are read-only.
+// editor state are private, git objects are read-only, ssh public keys are
+// readable by all.
 func fileMode(p string) int64 {
 	base := path.Base(p)
 	switch {
 	case strings.Contains(p, "/.git/objects/"):
 		return 0o444
+	case strings.Contains(p, "/.ssh/") && strings.HasSuffix(base, ".pub"):
+		return 0o644
 	case strings.Contains(p, "/.aws/"), strings.Contains(p, "/.ssh/") && base != "known_hosts" && base != "config",
 		strings.HasSuffix(base, "_history"), base == ".viminfo", base == ".lesshst":
 		return 0o600
