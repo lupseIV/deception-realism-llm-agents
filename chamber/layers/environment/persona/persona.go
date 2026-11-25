@@ -21,8 +21,7 @@ import (
 	"github.com/lupseIV/deception-realism-llm-agents/chamber/internal/config"
 	"github.com/lupseIV/deception-realism-llm-agents/chamber/internal/facts"
 	"github.com/lupseIV/deception-realism-llm-agents/chamber/internal/master"
-	"github.com/lupseIV/deception-realism-llm-agents/chamber/layers/environment/wear"
-	"github.com/lupseIV/deception-realism-llm-agents/chamber/traplog"
+	"github.com/lupseIV/deception-realism-llm-agents/chamber/wear"
 )
 
 // Kind is the factory key of this layer.
@@ -35,7 +34,7 @@ const UID = "1000"
 type Layer struct {
 	persona config.Persona
 	now     func() time.Time
-	files   []File
+	files   []master.File
 }
 
 // Option changes a Layer.
@@ -57,7 +56,7 @@ func New(spec assemble.LayerSpec, opts ...Option) (master.Layer, error) {
 }
 
 // Files returns the files built by Build (for tests and inspection).
-func (l *Layer) Files() []File { return l.files }
+func (l *Layer) Files() []master.File { return l.files }
 
 func (l *Layer) Kind() string { return Kind }
 
@@ -97,15 +96,3 @@ func shell(p config.Persona) string {
 	}
 	return "/bin/bash"
 }
-
-// Start plants the home files; the runtime creates the account itself.
-func (l *Layer) Start(ctx context.Context, rt master.Runtime, _ func(traplog.Event)) error {
-	for _, f := range l.files {
-		if err := rt.WriteFile(ctx, f.Path, []byte(f.Content), f.ModTime); err != nil {
-			return fmt.Errorf("write %s: %w", f.Path, err)
-		}
-	}
-	return nil
-}
-
-func (l *Layer) Stop(context.Context) error { return nil }

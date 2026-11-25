@@ -43,20 +43,29 @@ SandboxMaster
 
 ```go
 type Master interface {
-    ID() string                                          // "sandbox/honeytoken/aws-credentials"
-    Build(ctx context.Context, in Facts) (Facts, error)  // generate artifacts, export facts
-    Start(ctx context.Context, rt Runtime) error         // inject into container / start services
-    Events() <-chan Event                                // stream to the parent
+    Name() string
+    Build(ctx context.Context, in Facts) (Facts, error)            // generate artifacts, export facts
+    Start(ctx context.Context, rt Runtime, emit func(Event)) error // plant files, start services
     Stop(ctx context.Context) error
 }
 
+// A layer builds content; what else it does is optional.
 type Layer interface {
     Kind() string
     Build(ctx context.Context, in Facts) (Facts, error)
+}
+type Planter interface { Files() []File }        // files to plant (File{Path, Content, ModTime, Append})
+type Service interface {                         // runs between Start and Stop (fake services)
     Start(ctx context.Context, rt Runtime, emit func(Event)) error
     Stop(ctx context.Context) error
 }
 ```
+
+Commands go down the tree as data (`File`), planted by the layer's master;
+events go up as plain calls: each group hands its children an `emit` that
+adds the group's name, so the root sees `sandbox/honeytoken/aws-credentials`.
+No channels or goroutines. The root's `emit` is the trap log, which counts
+events it could not write (`lost_events` in `run.json`).
 
 ## 3. Configuration
 
@@ -145,8 +154,8 @@ Timestamps lie in the past on weekday working hours, spread from account
 creation (300-420 days ago) to 1-3 days ago, folders included. This applies the
 wear-and-tear idea [8] and realistic decoy content [7], [10] to the user's home
 instead of the operating system. The text of these files lives in the
-`chamber/layers/environment/wear/` store (`<level>/<kind>/<name>`, embedded in the binary; see
-`chamber/layers/environment/wear/README.md`); the layer code only decides placement and timing.
+`chamber/wear/` store (`<level>/<kind>/<name>`, embedded in the binary; see
+`chamber/wear/README.md`); the layer code only decides placement and timing.
 
 Rules that keep the comparison clean:
 - The baseline is seeded by the persona id, not the run seed: file contents are
@@ -286,26 +295,31 @@ microVM runtime (Firecracker [14]; Kata Containers would need a new source).
 
 | Current package | New role | Change needed |
 |---|---|---|
-| `chamber/honeytoken` | split: value generation -> `tokensource/generator`; placement and context -> `layers/honeytoken/awscreds` | Profile, bucket, user and path come from persona facts; format and level logic stay. |
+| `chamber/honeytoken` | split: value generation -> `tokensource/generator` (key generation itself moved to `internal/tokensource/awskey`); placement and context -> `layers/honeytoken/awscreds` | Profile, bucket, user and path come from persona facts; format and level logic stay. |
 | `chamber/fakesvc` | `layers/network/aws` (proxy) | Becomes the proxy in front of Moto: keeps key checks, STS, token matching and logging; forwards other services to Moto. Tokens and buckets from facts (`bind`); latency applied by the network sub-master. |
-| `chamber/traplog` | sink of the SandboxMaster | Add `layer` (master path) and `token_id` to `Event`. |
+| `chamber/internal/traplog` | sink of the SandboxMaster (the root emit) | Add `layer` (master path) and `token_id` to `Event`. |
 
 ## 11. Package layout (target)
 
 ```
 chamber/
-  cmd/chamber/              CLI: validate, build, run, pool import
+  cmd/chamber/              CLI: flags only (compose, serve, facts)
+  internal/app/             use cases: prepare, compose, serve
+  internal/helpers/         shared helpers: seeded randomness, timestamps, ~ paths
   internal/config/          XML loading and validation
   internal/master/          Master, GroupMaster, LayerMaster, SandboxMaster, RemoteMaster
   internal/facts/
   internal/tokensource/     interface, generator, pool, provider importers
+  internal/tokensource/awskey/  AWS key pair generation used by the generator
+  internal/openssh/         OpenSSH key, fingerprint and known_hosts formats
   internal/netshape/        egress modes, connection logging, latency profiles
   internal/runtime/docker/  create container, copy files, chtimes, exec
   layers/environment/       system, files, apps, config, prefs, history
-  layers/honeytoken/        awscreds, hftoken, dbcreds
+  wear/                     embedded text store of the planted home, per level
+  layers/honeytoken/        awscreds, sshkey, hftoken, dbcreds
   layers/network/           aws, paste
   detectors/fileread/       inotify watcher (runs in the container)
-  traplog/
+  internal/traplog/
 personas/                   ml-engineer.xml, server-host.xml, aws-developer.xml
 schema/                     sandbox.xsd, persona.xsd, pool.schema.json
 configs/                    sandbox configurations per experimental condition

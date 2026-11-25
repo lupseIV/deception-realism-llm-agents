@@ -17,6 +17,7 @@
 package aws
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -31,7 +32,7 @@ import (
 	"github.com/lupseIV/deception-realism-llm-agents/chamber/internal/config"
 	"github.com/lupseIV/deception-realism-llm-agents/chamber/internal/facts"
 	"github.com/lupseIV/deception-realism-llm-agents/chamber/internal/master"
-	"github.com/lupseIV/deception-realism-llm-agents/chamber/traplog"
+	"github.com/lupseIV/deception-realism-llm-agents/chamber/internal/traplog"
 )
 
 // Kind is the factory key of this layer.
@@ -124,7 +125,7 @@ func (l *Layer) Build(_ context.Context, in facts.Facts) (facts.Facts, error) {
 
 	l.tokens = plantedValues(in)
 	l.account = Account(in[facts.PersonaCompanySlug])
-	l.region = firstNonEmpty(in[facts.PersonaRegion], "us-east-1")
+	l.region = cmp.Or(in[facts.PersonaRegion], "us-east-1")
 	l.user = in[facts.PersonaUser]
 
 	if b := l.spec.Bind; b != "" {
@@ -136,7 +137,7 @@ func (l *Layer) Build(_ context.Context, in facts.Facts) (facts.Facts, error) {
 		if p := in[facts.TokenKey(b, facts.TokenProfile)]; p != "" && p != "default" {
 			l.user = p
 		}
-		l.region = firstNonEmpty(in[facts.TokenKey(b, facts.TokenRegion)], l.region)
+		l.region = cmp.Or(in[facts.TokenKey(b, facts.TokenRegion)], l.region)
 		l.bucket = in[facts.TokenKey(b, facts.TokenBucket)]
 	}
 
@@ -227,13 +228,4 @@ func (l *Layer) Stop(ctx context.Context) error {
 		err = nil
 	}
 	return err
-}
-
-func firstNonEmpty(vs ...string) string {
-	for _, v := range vs {
-		if v != "" {
-			return v
-		}
-	}
-	return ""
 }

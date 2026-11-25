@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
+	"errors"
 	"sync"
 	"testing"
 	"time"
@@ -45,5 +46,23 @@ func TestConcurrentLogging(t *testing.T) {
 	}
 	if n != 100 {
 		t.Fatalf("expected 100 lines, got %d", n)
+	}
+}
+
+type failWriter struct{}
+
+func (failWriter) Write([]byte) (int, error) { return 0, errors.New("disk full") }
+
+// A broken log volume must not look like a run without triggers.
+func TestLostEventsAreCounted(t *testing.T) {
+	l := New(failWriter{}, "run-3")
+	for i := 0; i < 3; i++ {
+		if err := l.Log(Event{Kind: Use, Source: "test"}); err == nil {
+			t.Fatal("expected a write error")
+		}
+	}
+	n, err := l.Lost()
+	if n != 3 || err == nil || err.Error() != "disk full" {
+		t.Fatalf("got %d lost, first error %v", n, err)
 	}
 }

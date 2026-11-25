@@ -8,6 +8,7 @@ import (
 	"sort"
 
 	"github.com/lupseIV/deception-realism-llm-agents/chamber/internal/facts"
+	"github.com/lupseIV/deception-realism-llm-agents/chamber/internal/helpers"
 )
 
 // PoolEntry is one pre-issued token, e.g. created by a provider or by hand.
@@ -94,7 +95,7 @@ func (p *Pool) Issue(_ context.Context, req TokenRequest) (Material, error) {
 	if len(es) == 0 {
 		return Material{}, fmt.Errorf("pool has no tokens of type %q", req.Type)
 	}
-	e := es[subSeed(req.Seed, req.TokenID)%uint64(len(es))]
+	e := es[helpers.Salt(req.Seed, req.TokenID)%uint64(len(es))]
 	fields := map[string]string{}
 	var match []string
 	for _, k := range sortedKeys(e.Fields) {

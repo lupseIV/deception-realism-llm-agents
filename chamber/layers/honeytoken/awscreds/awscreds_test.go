@@ -14,7 +14,7 @@ import (
 	"github.com/lupseIV/deception-realism-llm-agents/chamber/internal/facts"
 	"github.com/lupseIV/deception-realism-llm-agents/chamber/internal/master"
 	"github.com/lupseIV/deception-realism-llm-agents/chamber/internal/tokensource"
-	"github.com/lupseIV/deception-realism-llm-agents/chamber/traplog"
+	"github.com/lupseIV/deception-realism-llm-agents/chamber/internal/traplog"
 )
 
 const repo = "../../../.."
@@ -76,8 +76,8 @@ func spec(t *testing.T, source string, r *tokensource.Registry) assemble.LayerSp
 	return assemble.LayerSpec{Kind: Kind, ID: "creds", Source: source, Persona: persona(t), Tokens: r}
 }
 
-func files(l *Layer) map[string]File {
-	m := map[string]File{}
+func files(l *Layer) map[string]master.File {
+	m := map[string]master.File{}
 	for _, f := range l.Files() {
 		m[f.Path] = f
 	}
@@ -262,7 +262,7 @@ func TestThroughAssembler(t *testing.T) {
 		t.Fatal(err)
 	}
 	rt := &memRuntime{files: map[string]string{}}
-	if err := res.Root.Start(ctx, rt); err != nil {
+	if err := res.Root.Start(ctx, rt, func(traplog.Event) {}); err != nil {
 		t.Fatal(err)
 	}
 	key := out[facts.TokenKey("creds", facts.TokenAccessKeyID)]

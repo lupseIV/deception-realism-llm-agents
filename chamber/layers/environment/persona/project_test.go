@@ -8,7 +8,7 @@ import (
 	"testing"
 	"testing/fstest"
 
-	"github.com/lupseIV/deception-realism-llm-agents/chamber/layers/environment/wear"
+	"github.com/lupseIV/deception-realism-llm-agents/chamber/wear"
 )
 
 // Every commit changes exactly the files it lists.

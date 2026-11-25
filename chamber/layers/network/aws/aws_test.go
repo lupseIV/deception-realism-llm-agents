@@ -18,7 +18,7 @@ import (
 	"github.com/lupseIV/deception-realism-llm-agents/chamber/internal/assemble"
 	"github.com/lupseIV/deception-realism-llm-agents/chamber/internal/facts"
 	"github.com/lupseIV/deception-realism-llm-agents/chamber/internal/master"
-	"github.com/lupseIV/deception-realism-llm-agents/chamber/traplog"
+	"github.com/lupseIV/deception-realism-llm-agents/chamber/internal/traplog"
 )
 
 var (

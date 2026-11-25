@@ -13,7 +13,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/lupseIV/deception-realism-llm-agents/chamber/traplog"
+	"github.com/lupseIV/deception-realism-llm-agents/chamber/internal/traplog"
 )
 
 // handler returns the HTTP handler for generic and faithful mode. Every

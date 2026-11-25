@@ -44,7 +44,7 @@ func TestLowExportsIdentity(t *testing.T) {
 		}
 	}
 	rt := &memRuntime{files: map[string]string{}}
-	if err := l.Start(ctx, rt, nil); err != nil {
+	if err := master.Plant(ctx, rt, l.(master.Planter).Files()); err != nil {
 		t.Fatal(err)
 	}
 	if len(rt.files) == 0 {

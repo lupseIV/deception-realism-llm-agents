@@ -6,7 +6,6 @@ package tokensource
 import (
 	"context"
 	"fmt"
-	"hash/fnv"
 	"sort"
 
 	"github.com/lupseIV/deception-realism-llm-agents/chamber/internal/facts"
@@ -87,11 +86,4 @@ func (r *Registry) IDs() []string {
 	}
 	sort.Strings(ids)
 	return ids
-}
-
-// subSeed derives a per-token seed so that several tokens in one run differ.
-func subSeed(seed uint64, tokenID string) uint64 {
-	h := fnv.New64a()
-	_, _ = h.Write([]byte(tokenID))
-	return seed ^ h.Sum64()
 }

@@ -9,7 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/lupseIV/deception-realism-llm-agents/chamber/layers/environment/wear"
+	"github.com/lupseIV/deception-realism-llm-agents/chamber/internal/master"
+	"github.com/lupseIV/deception-realism-llm-agents/chamber/wear"
 )
 
 // The persona's project under ~/work: a small Python service whose source,
@@ -148,7 +149,7 @@ func (m *projectMeta) render(name string, done map[string]bool) (string, bool) {
 // projectFiles builds the worktree and .git of the project: a clone made a
 // few days after the account was set up, followed by the persona's and
 // colleagues' later commits.
-func projectFiles(c homeCtx, g *homeGen, w *wear.Store, m *projectMeta, data wearData) ([]File, error) {
+func projectFiles(c homeCtx, g *homeGen, w *wear.Store, m *projectMeta, data wearData) ([]master.File, error) {
 	if c.repo == "" {
 		return nil, nil
 	}
@@ -188,13 +189,13 @@ func projectFiles(c homeCtx, g *homeGen, w *wear.Store, m *projectMeta, data wea
 	}
 
 	gitDir := path.Join(c.repoPath, ".git")
-	var fs []File
+	var fs []master.File
 	add := func(rel string, content []byte, mt time.Time) {
 		p := path.Join(gitDir, rel)
 		if strings.HasSuffix(rel, "/") {
 			p += "/" // an empty directory
 		}
-		fs = append(fs, File{Path: p, Content: string(content), ModTime: mt})
+		fs = append(fs, master.File{Path: p, Content: string(content), ModTime: mt})
 	}
 	me := ident(c.fullName, c.user+"@"+c.domain, clone)
 	zero := strings.Repeat("0", 40)
@@ -207,7 +208,7 @@ func projectFiles(c homeCtx, g *homeGen, w *wear.Store, m *projectMeta, data wea
 		if mt.Before(clone) {
 			mt = clone
 		}
-		fs = append(fs, File{Path: path.Join(c.repoPath, f), Content: content, ModTime: mt})
+		fs = append(fs, master.File{Path: path.Join(c.repoPath, f), Content: content, ModTime: mt})
 		index = append(index, indexEntry{path: f, id: gitObject{"blob", []byte(content)}.id(), size: len(content), mtime: mt})
 	}
 

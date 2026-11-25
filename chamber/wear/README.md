@@ -1,6 +1,6 @@
 # wear: text store of the planted home
 
-The environment layer (`../persona`, next to this folder) decides which files go
+The environment layer (`../layers/environment/persona`) decides which files go
 into the sandbox home, where, and with which timestamps. The text of those
 files lives here and is embedded in the chamber binary (`go:embed`), so the
 gateway image needs no extra files.

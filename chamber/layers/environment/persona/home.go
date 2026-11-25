@@ -4,7 +4,6 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"hash/fnv"
 	"math/rand/v2"
 	"path"
 	"slices"
@@ -13,16 +12,10 @@ import (
 	"time"
 
 	"github.com/lupseIV/deception-realism-llm-agents/chamber/internal/config"
-	"github.com/lupseIV/deception-realism-llm-agents/chamber/layers/environment/wear"
+	"github.com/lupseIV/deception-realism-llm-agents/chamber/internal/helpers"
+	"github.com/lupseIV/deception-realism-llm-agents/chamber/internal/master"
+	"github.com/lupseIV/deception-realism-llm-agents/chamber/wear"
 )
-
-// File is one file (or, with a Path ending in "/", one empty directory) the
-// layer plants in the sandbox.
-type File struct {
-	Path    string // absolute
-	Content string
-	ModTime time.Time
-}
 
 // Baseline home
 //
@@ -42,15 +35,12 @@ type homeGen struct {
 }
 
 func newHomeGen(p config.Persona, now time.Time) *homeGen {
-	h := fnv.New64a()
-	_, _ = h.Write([]byte("persona-home/" + string(p.ID)))
-	s := h.Sum64()
-	g := &homeGen{rng: rand.New(rand.NewPCG(s, s^0x9e3779b97f4a7c15)), now: now}
+	g := &homeGen{rng: helpers.NewRand(helpers.Salt(0, "persona-home/"+string(p.ID))), now: now}
 	g.created = g.workTime(now.AddDate(0, 0, -(300 + g.rng.IntN(120))))
 	return g
 }
 
-func (g *homeGen) pick(xs []string) string { return xs[g.rng.IntN(len(xs))] }
+func (g *homeGen) pick(xs []string) string { return helpers.Pick(g.rng, xs) }
 
 // between returns a working-hour time between a and b (a before b).
 func (g *homeGen) between(a, b time.Time) time.Time {
@@ -92,7 +82,7 @@ func newHomeCtx(p config.Persona, home string) homeCtx {
 		slug: string(id.CompanySlug), company: id.Company, domain: string(id.CompanySlug) + ".com"}
 	for _, d := range p.Files {
 		if d.Kind == config.DirKindGitRepo {
-			c.repoPath = expandHome(d.Path, home)
+			c.repoPath = helpers.ExpandHome(d.Path, home)
 			c.repo = path.Base(c.repoPath)
 			break
 		}
@@ -130,7 +120,7 @@ func (c homeCtx) wearData(m *projectMeta) wearData {
 // baselineFiles builds the dotfiles and editor/shell state of the home from
 // the wear store. The project under ~/work is added by projectFiles. Which
 // file is planted and when is decided here; the text comes from the store.
-func baselineFiles(c homeCtx, g *homeGen, w *wear.Store) ([]File, error) {
+func baselineFiles(c homeCtx, g *homeGen, w *wear.Store) ([]master.File, error) {
 	h := func(rel string) string {
 		p := path.Join(c.home, rel)
 		if strings.HasSuffix(rel, "/") {
@@ -149,10 +139,10 @@ func baselineFiles(c homeCtx, g *homeGen, w *wear.Store) ([]File, error) {
 	}
 	data.Remote = remote[0]
 	created := g.created
-	var fs []File
+	var fs []master.File
 	var errs []error
 	add := func(rel, content string, mt time.Time) {
-		fs = append(fs, File{Path: h(rel), Content: content, ModTime: mt})
+		fs = append(fs, master.File{Path: h(rel), Content: content, ModTime: mt})
 	}
 	text := func(names ...string) string {
 		var b strings.Builder
@@ -303,13 +293,7 @@ func history(c homeCtx, g *homeGen, side []string, m *projectMeta) (string, time
 // random host keys; the hashes are not checked against the host names.
 func knownHosts(g *homeGen, hosts []string) string {
 	var b strings.Builder
-	rnd := func(n int) []byte {
-		x := make([]byte, n)
-		for i := range x {
-			x[i] = byte(g.rng.IntN(256))
-		}
-		return x
-	}
+	rnd := func(n int) []byte { return helpers.Bytes(g.rng, n) }
 	for range hosts {
 		key := append([]byte{0, 0, 0, 11}, []byte("ssh-ed25519")...)
 		key = append(key, 0, 0, 0, 32)
@@ -318,14 +302,4 @@ func knownHosts(g *homeGen, hosts []string) string {
 			base64.StdEncoding.EncodeToString(rnd(20)), base64.StdEncoding.EncodeToString(key))
 	}
 	return b.String()
-}
-
-func expandHome(p, home string) string {
-	if p == "~" {
-		return home
-	}
-	if strings.HasPrefix(p, "~/") {
-		return path.Join(home, p[2:])
-	}
-	return p
 }

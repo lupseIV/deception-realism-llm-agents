@@ -1,4 +1,4 @@
-package honeytoken
+package awskey
 
 import (
 	"regexp"

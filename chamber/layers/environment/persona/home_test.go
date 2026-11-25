@@ -36,7 +36,7 @@ func (m *memRuntime) AppendFile(_ context.Context, p string, b []byte, _ time.Ti
 }
 
 // build runs the layer at the given level and returns its files by path.
-func build(t *testing.T, level string, now time.Time) map[string]File {
+func build(t *testing.T, level string, now time.Time) map[string]master.File {
 	t.Helper()
 	ml, err := New(assemble.LayerSpec{Kind: Kind, ID: "persona", Persona: load(t)}, WithClock(func() time.Time { return now }))
 	if err != nil {
@@ -45,7 +45,7 @@ func build(t *testing.T, level string, now time.Time) map[string]File {
 	if _, err := ml.Build(ctx, facts.Facts{master.RealismKey: level, facts.RunSeed: "7"}); err != nil {
 		t.Fatal(err)
 	}
-	out := map[string]File{}
+	out := map[string]master.File{}
 	for _, f := range ml.(*Layer).Files() {
 		out[f.Path] = f
 	}

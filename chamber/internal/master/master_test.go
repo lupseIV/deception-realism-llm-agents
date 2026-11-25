@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/lupseIV/deception-realism-llm-agents/chamber/internal/facts"
-	"github.com/lupseIV/deception-realism-llm-agents/chamber/traplog"
+	"github.com/lupseIV/deception-realism-llm-agents/chamber/internal/traplog"
 )
 
 // fakeLayer records calls in a shared journal and emits one event on Start.
@@ -120,19 +120,18 @@ func TestLifecycleOrderAndEventPaths(t *testing.T) {
 	tr := newTree()
 	ctx := context.Background()
 	var buf bytes.Buffer
-	done := Drain(tr.root, traplog.New(&buf, "run-1"))
+	log := traplog.New(&buf, "run-1")
 
 	rt := &fakeRuntime{}
 	if _, err := tr.root.Build(ctx, facts.Facts{}); err != nil {
 		t.Fatal(err)
 	}
-	if err := tr.root.Start(ctx, rt); err != nil {
+	if err := tr.root.Start(ctx, rt, func(e traplog.Event) { _ = log.Log(e) }); err != nil {
 		t.Fatal(err)
 	}
 	if err := tr.root.Stop(ctx); err != nil {
 		t.Fatal(err)
 	}
-	<-done
 
 	want := []string{
 		"build persona", "build aws-credentials", "build aws",
@@ -187,4 +186,41 @@ func TestStopContinuesAfterError(t *testing.T) {
 	}
 	// Second stop must not panic.
 	_ = tr.root.Stop(context.Background())
+}
+
+// plantLayer only has files: no Start, no Stop.
+type plantLayer struct{ files []File }
+
+func (plantLayer) Kind() string                                            { return "plant" }
+func (plantLayer) Build(context.Context, facts.Facts) (facts.Facts, error) { return nil, nil }
+func (p plantLayer) Files() []File                                         { return p.files }
+
+type opRuntime struct{ ops []string }
+
+func (r *opRuntime) WriteFile(_ context.Context, p string, b []byte, _ time.Time) error {
+	r.ops = append(r.ops, "write "+p+" "+string(b))
+	return nil
+}
+
+func (r *opRuntime) AppendFile(_ context.Context, p string, b []byte, _ time.Time) error {
+	r.ops = append(r.ops, "append "+p+" "+string(b))
+	return nil
+}
+
+func TestPlanterFilesArePlantedInOrder(t *testing.T) {
+	root := NewGroup("sandbox", "",
+		NewLayer("env", plantLayer{[]File{{Path: "/h/.bash_history", Content: "ls\n"}}}),
+		NewLayer("tok", plantLayer{[]File{{Path: "/h/.bash_history", Content: "aws s3 ls\n", Append: true}}}),
+	)
+	rt := &opRuntime{}
+	if err := root.Start(context.Background(), rt, func(traplog.Event) {}); err != nil {
+		t.Fatal(err)
+	}
+	want := "write /h/.bash_history ls\n,append /h/.bash_history aws s3 ls\n"
+	if got := strings.Join(rt.ops, ","); got != want {
+		t.Fatalf("got %q\nwant %q", got, want)
+	}
+	if err := root.Stop(context.Background()); err != nil {
+		t.Fatalf("a layer without Stop must stop cleanly: %v", err)
+	}
 }

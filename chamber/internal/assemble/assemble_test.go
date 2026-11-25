@@ -16,7 +16,7 @@ import (
 	"github.com/lupseIV/deception-realism-llm-agents/chamber/internal/facts"
 	"github.com/lupseIV/deception-realism-llm-agents/chamber/internal/master"
 	"github.com/lupseIV/deception-realism-llm-agents/chamber/internal/tokensource"
-	"github.com/lupseIV/deception-realism-llm-agents/chamber/traplog"
+	"github.com/lupseIV/deception-realism-llm-agents/chamber/internal/traplog"
 )
 
 const repo = "../../.."
@@ -87,17 +87,16 @@ func run(t *testing.T, res Result) map[string]bool {
 	t.Helper()
 	ctx := context.Background()
 	var buf bytes.Buffer
-	done := master.Drain(res.Root, traplog.New(&buf, "run"))
+	log := traplog.New(&buf, "run")
 	if _, err := res.Root.Build(ctx, res.Facts); err != nil {
 		t.Fatal(err)
 	}
-	if err := res.Root.Start(ctx, nopRuntime{}); err != nil {
+	if err := res.Root.Start(ctx, nopRuntime{}, func(e traplog.Event) { _ = log.Log(e) }); err != nil {
 		t.Fatal(err)
 	}
 	if err := res.Root.Stop(ctx); err != nil {
 		t.Fatal(err)
 	}
-	<-done
 	paths := map[string]bool{}
 	sc := bufio.NewScanner(&buf)
 	for sc.Scan() {

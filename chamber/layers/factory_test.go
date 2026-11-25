@@ -11,7 +11,7 @@ import (
 	"github.com/lupseIV/deception-realism-llm-agents/chamber/internal/config"
 	"github.com/lupseIV/deception-realism-llm-agents/chamber/internal/facts"
 	"github.com/lupseIV/deception-realism-llm-agents/chamber/internal/master"
-	"github.com/lupseIV/deception-realism-llm-agents/chamber/traplog"
+	"github.com/lupseIV/deception-realism-llm-agents/chamber/internal/traplog"
 )
 
 const repo = "../.."
@@ -64,7 +64,7 @@ func plantFile(t *testing.T, rel string) map[string]string {
 		t.Fatal(err)
 	}
 	rt := &recRuntime{files: map[string]string{}}
-	if err := res.Root.Start(ctx, rt); err != nil {
+	if err := res.Root.Start(ctx, rt, func(traplog.Event) {}); err != nil {
 		t.Fatal(err)
 	}
 	return rt.files

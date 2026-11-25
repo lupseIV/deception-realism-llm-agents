@@ -73,8 +73,8 @@ func build(t *testing.T, level, seed string) (*Layer, facts.Facts) {
 	return l, out
 }
 
-func files(l *Layer) map[string]File {
-	m := map[string]File{}
+func files(l *Layer) map[string]master.File {
+	m := map[string]master.File{}
 	for _, f := range l.Files() {
 		m[f.Path] = f
 	}
@@ -83,7 +83,7 @@ func files(l *Layer) map[string]File {
 
 // checkKeyPair parses the private key file and checks it against the .pub
 // file and the exported facts.
-func checkKeyPair(t *testing.T, fs map[string]File, out facts.Facts, wantComment string) openssh.Key {
+func checkKeyPair(t *testing.T, fs map[string]master.File, out facts.Facts, wantComment string) openssh.Key {
 	t.Helper()
 	k, comment, err := openssh.ParsePrivatePEM(fs[keyPath].Content)
 	if err != nil {

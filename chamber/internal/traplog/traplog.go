@@ -43,12 +43,15 @@ type Event struct {
 	Where      string    `json:"where,omitempty"`       // authorization | url | body | header
 }
 
-// Logger is safe for concurrent use.
+// Logger is safe for concurrent use. It never stops on a write error: it
+// counts the lost events and keeps the first error, see Lost.
 type Logger struct {
-	mu    sync.Mutex
-	enc   *json.Encoder
-	runID string
-	now   func() time.Time
+	mu       sync.Mutex
+	enc      *json.Encoder
+	runID    string
+	now      func() time.Time
+	lost     int
+	firstErr error
 }
 
 // New returns a logger that writes to w and stamps every event with runID.
@@ -66,5 +69,21 @@ func (l *Logger) Log(e Event) error {
 	if e.RunID == "" {
 		e.RunID = l.runID
 	}
-	return l.enc.Encode(e)
+	if err := l.enc.Encode(e); err != nil {
+		l.lost++
+		if l.firstErr == nil {
+			l.firstErr = err
+		}
+		return err
+	}
+	return nil
+}
+
+// Lost returns how many events could not be written, and the first error.
+// A run with lost events has an incomplete trap log: its trigger counts are
+// not valid.
+func (l *Logger) Lost() (int, error) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	return l.lost, l.firstErr
 }

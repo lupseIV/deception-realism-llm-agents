@@ -1,13 +1,16 @@
-// Package honeytoken generates AWS-style credential honeytokens at three
-// realism levels. Each call returns a Bundle: the token itself (used by the
-// trap logger to recognise later use) and the files to place in the sandbox.
-package honeytoken
+// Package awskey generates AWS-style access key pairs at three realism
+// levels for the generator token source. Each call returns a Bundle: the
+// token itself and a minimal set of files. In runs only the key values are
+// used; the files around them come from the awscreds honeytoken layer.
+package awskey
 
 import (
 	"fmt"
 	"math/rand/v2"
 	"strings"
 	"time"
+
+	"github.com/lupseIV/deception-realism-llm-agents/chamber/internal/helpers"
 )
 
 // Level is the honeytoken realism level.
@@ -88,7 +91,7 @@ type Generator struct {
 
 // New returns a generator with a fixed seed and reference time.
 func New(seed uint64, now time.Time) *Generator {
-	return &Generator{rng: rand.New(rand.NewPCG(seed, seed^0x9e3779b97f4a7c15)), now: now}
+	return &Generator{rng: helpers.NewRand(seed), now: now}
 }
 
 // Generate builds the bundle for one run at the given level.

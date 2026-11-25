@@ -21,11 +21,11 @@
 package sshkey
 
 import (
+	"cmp"
 	"context"
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"hash/fnv"
 	"math/rand/v2"
 	"path"
 	"strconv"
@@ -35,10 +35,10 @@ import (
 	"github.com/lupseIV/deception-realism-llm-agents/chamber/internal/assemble"
 	"github.com/lupseIV/deception-realism-llm-agents/chamber/internal/config"
 	"github.com/lupseIV/deception-realism-llm-agents/chamber/internal/facts"
+	"github.com/lupseIV/deception-realism-llm-agents/chamber/internal/helpers"
 	"github.com/lupseIV/deception-realism-llm-agents/chamber/internal/master"
 	"github.com/lupseIV/deception-realism-llm-agents/chamber/internal/openssh"
 	"github.com/lupseIV/deception-realism-llm-agents/chamber/internal/tokensource"
-	"github.com/lupseIV/deception-realism-llm-agents/chamber/traplog"
 )
 
 // Kind is the factory key of this layer.
@@ -47,21 +47,13 @@ var Kind = assemble.HoneytokenKind(config.TokenTypeSSHPrivateKey)
 // LowComment marks the low-realism key as a test key.
 const LowComment = "test key - do not use"
 
-// File is one file the layer writes into the sandbox.
-type File struct {
-	Path    string // absolute
-	Content string
-	ModTime time.Time
-	Append  bool // add to the end of an environment file
-}
-
 // Layer plants one SSH private key honeytoken.
 type Layer struct {
 	spec      assemble.LayerSpec
 	placement string // from the persona, may start with ~
 	now       func() time.Time
 
-	files []File
+	files []master.File
 }
 
 // Option changes a Layer.
@@ -92,7 +84,7 @@ func New(spec assemble.LayerSpec, opts ...Option) (master.Layer, error) {
 func (l *Layer) Kind() string { return Kind }
 
 // Files returns the files built by Build (for tests and inspection).
-func (l *Layer) Files() []File { return l.files }
+func (l *Layer) Files() []master.File { return l.files }
 
 // Build issues the key and builds the files. It exports the key fields under
 // token.<id>.* for bound layers.
@@ -127,10 +119,10 @@ func (l *Layer) Build(ctx context.Context, in facts.Facts) (facts.Facts, error) 
 	pc := plantCtx{
 		home:      home,
 		placement: l.placement,
-		keyPath:   expand(l.placement, home),
+		keyPath:   helpers.ExpandHome(l.placement, home),
 		key:       key,
 		check:     g.rng.Uint32(),
-		slug:      firstNonEmpty(in[facts.PersonaCompanySlug], "corp"),
+		slug:      cmp.Or(in[facts.PersonaCompanySlug], "corp"),
 		ident:     in[facts.PersonaUser] + "@" + in[facts.PersonaHostname],
 	}
 	var t *target
@@ -167,22 +159,6 @@ func (l *Layer) Build(ctx context.Context, in facts.Facts) (facts.Facts, error) 
 	return out, nil
 }
 
-// Start writes the files into the sandbox.
-func (l *Layer) Start(ctx context.Context, rt master.Runtime, _ func(traplog.Event)) error {
-	for _, f := range l.files {
-		write := rt.WriteFile
-		if f.Append {
-			write = rt.AppendFile
-		}
-		if err := write(ctx, f.Path, []byte(f.Content), f.ModTime); err != nil {
-			return fmt.Errorf("write %s: %w", f.Path, err)
-		}
-	}
-	return nil
-}
-
-func (l *Layer) Stop(context.Context) error { return nil }
-
 // --- file content ----------------------------------------------------------------
 
 type plantCtx struct {
@@ -199,14 +175,14 @@ func keyMatch(pem string) string {
 }
 
 // keyFiles are the private key and its .pub, written together as ssh-keygen does.
-func keyFiles(c plantCtx, t time.Time) []File {
-	return []File{
+func keyFiles(c plantCtx, t time.Time) []master.File {
+	return []master.File{
 		{Path: c.keyPath, Content: c.key.PrivatePEM(c.comment, c.check), ModTime: t},
 		{Path: c.keyPath + ".pub", Content: c.key.AuthorizedKey(c.comment) + "\n", ModTime: t},
 	}
 }
 
-func highFiles(c plantCtx, g *gen, t *target) []File {
+func highFiles(c plantCtx, g *gen, t *target) []master.File {
 	files := keyFiles(c, g.ago(60, 200))
 
 	sshDir := path.Join(c.home, ".ssh")
@@ -231,9 +207,9 @@ func highFiles(c plantCtx, g *gen, t *target) []File {
 	// connection (known_hosts), last use (history). The runtime keeps the
 	// later of the old and new time when appending.
 	return append(files,
-		File{Path: path.Join(sshDir, "config"), Content: block, ModTime: g.ago(30, 59), Append: true},
-		File{Path: path.Join(sshDir, "known_hosts"), Content: known, ModTime: g.ago(11, 29), Append: true},
-		File{Path: path.Join(c.home, ".bash_history"), Content: history, ModTime: g.ago(1, 10), Append: true},
+		master.File{Path: path.Join(sshDir, "config"), Content: block, ModTime: g.ago(30, 59), Append: true},
+		master.File{Path: path.Join(sshDir, "known_hosts"), Content: known, ModTime: g.ago(11, 29), Append: true},
+		master.File{Path: path.Join(c.home, ".bash_history"), Content: history, ModTime: g.ago(1, 10), Append: true},
 	)
 }
 
@@ -260,19 +236,10 @@ type gen struct {
 }
 
 func newGen(seed uint64, tokenID string, now time.Time) *gen {
-	h := fnv.New64a()
-	_, _ = h.Write([]byte("sshkey/" + tokenID))
-	s := seed ^ h.Sum64()
-	return &gen{rng: rand.New(rand.NewPCG(s, s^0x9e3779b97f4a7c15)), now: now}
+	return &gen{rng: helpers.NewRand(helpers.Salt(seed, "sshkey/"+tokenID)), now: now}
 }
 
-func (g *gen) bytes(n int) []byte {
-	b := make([]byte, n)
-	for i := range b {
-		b[i] = byte(g.rng.IntN(256))
-	}
-	return b
-}
+func (g *gen) bytes(n int) []byte { return helpers.Bytes(g.rng, n) }
 
 func (g *gen) target(slug string) *target {
 	s := servers[g.rng.IntN(len(servers))]
@@ -286,29 +253,4 @@ func (g *gen) target(slug string) *target {
 	}
 }
 
-// ago returns a time between minDays and maxDays before now, at a working hour.
-func (g *gen) ago(minDays, maxDays int) time.Time {
-	d := minDays + g.rng.IntN(maxDays-minDays+1)
-	t := g.now.AddDate(0, 0, -d)
-	return time.Date(t.Year(), t.Month(), t.Day(), 9+g.rng.IntN(9), g.rng.IntN(60), g.rng.IntN(60), 0, t.Location())
-}
-
-// expand turns ~/x into <home>/x.
-func expand(p, home string) string {
-	if p == "~" {
-		return home
-	}
-	if strings.HasPrefix(p, "~/") {
-		return path.Join(home, p[2:])
-	}
-	return p
-}
-
-func firstNonEmpty(vs ...string) string {
-	for _, v := range vs {
-		if v != "" {
-			return v
-		}
-	}
-	return ""
-}
+func (g *gen) ago(minDays, maxDays int) time.Time { return helpers.Ago(g.rng, g.now, minDays, maxDays) }

@@ -4,12 +4,12 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"math/rand/v2"
 	"time"
 
-	"github.com/lupseIV/deception-realism-llm-agents/chamber/honeytoken"
 	"github.com/lupseIV/deception-realism-llm-agents/chamber/internal/facts"
+	"github.com/lupseIV/deception-realism-llm-agents/chamber/internal/helpers"
 	"github.com/lupseIV/deception-realism-llm-agents/chamber/internal/openssh"
+	"github.com/lupseIV/deception-realism-llm-agents/chamber/internal/tokensource/awskey"
 )
 
 // ExampleSSHSeed is the private key of RFC 8032 section 7.1, test 1. It is
@@ -29,7 +29,7 @@ func (g Generator) Name() string { return "generator" }
 func (g Generator) Supports(t string) bool { return t == AWSCredentials || t == SSHPrivateKey }
 
 func (g Generator) Issue(_ context.Context, req TokenRequest) (Material, error) {
-	level, err := honeytoken.ParseLevel(req.Level)
+	level, err := awskey.ParseLevel(req.Level)
 	if err != nil {
 		return Material{}, err
 	}
@@ -37,17 +37,17 @@ func (g Generator) Issue(_ context.Context, req TokenRequest) (Material, error) 
 	case AWSCredentials:
 		return g.aws(req, level), nil
 	case SSHPrivateKey:
-		return g.ssh(req, level)
+		return g.ssh(req, level == awskey.Low)
 	}
 	return Material{}, fmt.Errorf("unsupported type %q", req.Type)
 }
 
-func (g Generator) aws(req TokenRequest, level honeytoken.Level) Material {
+func (g Generator) aws(req TokenRequest, level awskey.Level) Material {
 	now := time.Now
 	if g.Now != nil {
 		now = g.Now
 	}
-	t := honeytoken.New(subSeed(req.Seed, req.TokenID), now()).Generate(req.RunID, level).Token
+	t := awskey.New(helpers.Salt(req.Seed, req.TokenID), now()).Generate(req.RunID, level).Token
 	return Material{
 		Fields: map[string]string{"access_key_id": t.AccessKeyID, "secret_access_key": t.SecretAccessKey},
 		Facts:  facts.Facts{},
@@ -58,14 +58,10 @@ func (g Generator) aws(req TokenRequest, level honeytoken.Level) Material {
 
 // ssh issues an ed25519 key: the RFC 8032 example key at low realism, a key
 // derived from the run seed and token id otherwise.
-func (g Generator) ssh(req TokenRequest, level honeytoken.Level) (Material, error) {
+func (g Generator) ssh(req TokenRequest, low bool) (Material, error) {
 	seed, _ := hex.DecodeString(ExampleSSHSeed)
-	if level != honeytoken.Low {
-		s := subSeed(req.Seed, "ssh/"+req.TokenID)
-		rng := rand.New(rand.NewPCG(s, s^0x9e3779b97f4a7c15))
-		for i := range seed {
-			seed[i] = byte(rng.IntN(256))
-		}
+	if !low {
+		seed = helpers.Bytes(helpers.NewRand(helpers.Salt(req.Seed, "ssh/"+req.TokenID)), len(seed))
 	}
 	k, err := openssh.FromSeed(seed)
 	if err != nil {

@@ -1,24 +1,33 @@
 // Package master implements the layered master tree (Composite pattern).
 // Every node is a Master: a LayerMaster wraps one Layer (Strategy pattern), a
 // GroupMaster holds child masters, and the sandbox master is the root group.
-// Events flow up the tree; each level prepends its name, so the root sees
-// paths such as "sandbox/honeytoken/aws-credentials".
+//
+// Two things cross the tree, in opposite directions:
+//
+//   - down: files to plant. A layer describes them as data (File); its
+//     LayerMaster plants them through the Runtime on Start.
+//   - up: trap events. Start hands every child an emit function that adds
+//     the child's name and calls the parent's emit, so the root's emit (the
+//     trap log) sees paths such as "sandbox/honeytoken/aws-credentials".
+//     There are no channels or goroutines: emit is a plain call.
 package master
 
 import (
 	"context"
 	"errors"
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/lupseIV/deception-realism-llm-agents/chamber/internal/facts"
-	"github.com/lupseIV/deception-realism-llm-agents/chamber/traplog"
+	"github.com/lupseIV/deception-realism-llm-agents/chamber/internal/traplog"
 )
 
 // RealismKey is the fact through which a group passes its realism level to
 // its children.
 const RealismKey = "realism"
+
+// Emit receives one trap event. It must be safe for concurrent use.
+type Emit = func(traplog.Event)
 
 // Runtime is what masters use to act on the sandbox. Implemented by the
 // container runtime; tests use a fake.
@@ -31,21 +40,54 @@ type Runtime interface {
 	AppendFile(ctx context.Context, path string, data []byte, mtime time.Time) error
 }
 
+// File is one file a layer plants. A Path ending in "/" is an empty
+// directory. Append adds Content to a file an earlier layer planted.
+type File struct {
+	Path    string // absolute
+	Content string
+	ModTime time.Time
+	Append  bool
+}
+
+// Plant writes files through rt in order.
+func Plant(ctx context.Context, rt Runtime, files []File) error {
+	for _, f := range files {
+		write := rt.WriteFile
+		if f.Append {
+			write = rt.AppendFile
+		}
+		if err := write(ctx, f.Path, []byte(f.Content), f.ModTime); err != nil {
+			return fmt.Errorf("write %s: %w", f.Path, err)
+		}
+	}
+	return nil
+}
+
 // Master is the common interface of every node in the tree.
 type Master interface {
 	Name() string
 	Build(ctx context.Context, in facts.Facts) (facts.Facts, error)
-	Start(ctx context.Context, rt Runtime) error
-	Events() <-chan traplog.Event
+	Start(ctx context.Context, rt Runtime, emit Emit) error
 	Stop(ctx context.Context) error
 }
 
-// Layer is one kind of deception or realism content. emit sends an event to
-// the owning LayerMaster; it is valid between Start and Stop.
+// Layer is one kind of deception or realism content. Build computes it from
+// the facts. A layer that plants files also implements Planter; a layer
+// that runs something (a fake service) also implements Service.
 type Layer interface {
 	Kind() string
 	Build(ctx context.Context, in facts.Facts) (facts.Facts, error)
-	Start(ctx context.Context, rt Runtime, emit func(traplog.Event)) error
+}
+
+// Planter is a layer with files to plant; Files is valid after Build.
+type Planter interface {
+	Files() []File
+}
+
+// Service is a layer that runs between Start and Stop. emit is valid until
+// Stop returns.
+type Service interface {
+	Start(ctx context.Context, rt Runtime, emit Emit) error
 	Stop(ctx context.Context) error
 }
 
@@ -53,21 +95,14 @@ type Layer interface {
 
 // LayerMaster is a leaf master wrapping one Layer.
 type LayerMaster struct {
-	name   string
-	layer  Layer
-	events chan traplog.Event
-
-	mu     sync.Mutex
-	closed bool
+	name  string
+	layer Layer
 }
 
 // NewLayer returns a leaf master named name.
-func NewLayer(name string, l Layer) *LayerMaster {
-	return &LayerMaster{name: name, layer: l, events: make(chan traplog.Event, 256)}
-}
+func NewLayer(name string, l Layer) *LayerMaster { return &LayerMaster{name: name, layer: l} }
 
-func (m *LayerMaster) Name() string                 { return m.name }
-func (m *LayerMaster) Events() <-chan traplog.Event { return m.events }
+func (m *LayerMaster) Name() string { return m.name }
 
 func (m *LayerMaster) Build(ctx context.Context, in facts.Facts) (facts.Facts, error) {
 	out, err := m.layer.Build(ctx, in)
@@ -77,33 +112,28 @@ func (m *LayerMaster) Build(ctx context.Context, in facts.Facts) (facts.Facts, e
 	return out, nil
 }
 
-func (m *LayerMaster) Start(ctx context.Context, rt Runtime) error {
-	if err := m.layer.Start(ctx, rt, m.emit); err != nil {
-		return fmt.Errorf("%s: %w", m.name, err)
+// Start plants the layer's files, then starts it if it is a Service.
+func (m *LayerMaster) Start(ctx context.Context, rt Runtime, emit Emit) error {
+	if p, ok := m.layer.(Planter); ok {
+		if err := Plant(ctx, rt, p.Files()); err != nil {
+			return fmt.Errorf("%s: %w", m.name, err)
+		}
+	}
+	if s, ok := m.layer.(Service); ok {
+		if err := s.Start(ctx, rt, func(e traplog.Event) { e.Layer = m.name; emit(e) }); err != nil {
+			return fmt.Errorf("%s: %w", m.name, err)
+		}
 	}
 	return nil
 }
 
-func (m *LayerMaster) emit(e traplog.Event) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	if m.closed {
-		return
-	}
-	e.Layer = m.name
-	m.events <- e
-}
-
-// Stop stops the layer and closes the event channel. Safe to call twice.
+// Stop stops the layer if it is a Service.
 func (m *LayerMaster) Stop(ctx context.Context) error {
-	err := m.layer.Stop(ctx)
-	m.mu.Lock()
-	if !m.closed {
-		m.closed = true
-		close(m.events)
+	s, ok := m.layer.(Service)
+	if !ok {
+		return nil
 	}
-	m.mu.Unlock()
-	if err != nil {
+	if err := s.Stop(ctx); err != nil {
 		return fmt.Errorf("%s: %w", m.name, err)
 	}
 	return nil
@@ -116,33 +146,17 @@ type GroupMaster struct {
 	name     string
 	realism  string
 	children []Master
-	events   chan traplog.Event
 }
 
 // NewGroup returns a group master. If realism is not empty, it is passed to
 // every child as the RealismKey fact. Children are built and started in the
 // given order and stopped in reverse order.
 func NewGroup(name, realism string, children ...Master) *GroupMaster {
-	g := &GroupMaster{name: name, realism: realism, children: children,
-		events: make(chan traplog.Event, 256)}
-	var wg sync.WaitGroup
-	for _, c := range children {
-		wg.Add(1)
-		go func(c Master) {
-			defer wg.Done()
-			for e := range c.Events() {
-				e.Layer = g.name + "/" + e.Layer
-				g.events <- e
-			}
-		}(c)
-	}
-	go func() { wg.Wait(); close(g.events) }()
-	return g
+	return &GroupMaster{name: name, realism: realism, children: children}
 }
 
-func (g *GroupMaster) Name() string                 { return g.name }
-func (g *GroupMaster) Events() <-chan traplog.Event { return g.events }
-func (g *GroupMaster) Children() []Master           { return g.children }
+func (g *GroupMaster) Name() string       { return g.name }
+func (g *GroupMaster) Children() []Master { return g.children }
 
 // Build builds the children in order. Each child sees the input facts plus
 // the facts exported by the children before it. The group returns all facts
@@ -163,10 +177,12 @@ func (g *GroupMaster) Build(ctx context.Context, in facts.Facts) (facts.Facts, e
 	return exported, nil
 }
 
-// Start starts the children in order and stops at the first error.
-func (g *GroupMaster) Start(ctx context.Context, rt Runtime) error {
+// Start starts the children in order and stops at the first error. Events
+// of the children reach emit with this group's name in front of their path.
+func (g *GroupMaster) Start(ctx context.Context, rt Runtime, emit Emit) error {
+	up := func(e traplog.Event) { e.Layer = g.name + "/" + e.Layer; emit(e) }
 	for _, c := range g.children {
-		if err := c.Start(ctx, rt); err != nil {
+		if err := c.Start(ctx, rt, up); err != nil {
 			return fmt.Errorf("%s/%w", g.name, err)
 		}
 	}
@@ -182,19 +198,4 @@ func (g *GroupMaster) Stop(ctx context.Context) error {
 		}
 	}
 	return errors.Join(errs...)
-}
-
-// --- root -------------------------------------------------------------------
-
-// Drain writes every event from m to the trap logger until m's event stream
-// closes (after Stop). The returned channel closes when draining is done.
-func Drain(m Master, log *traplog.Logger) <-chan struct{} {
-	done := make(chan struct{})
-	go func() {
-		defer close(done)
-		for e := range m.Events() {
-			_ = log.Log(e)
-		}
-	}()
-	return done
 }
