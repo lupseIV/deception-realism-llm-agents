@@ -45,7 +45,7 @@ Every persona step adds `personas/<id>.xml` (identity, packages, folders,
 
 | Step | Persona | Token affinity | Services it talks to | |
 |---|---|---|---|---|
-| P0 | (refactor) wear store keyed by persona: `wear/<level>/<persona>/project`, per-persona ssh hosts | - | - | core |
+| P0 | (refactor) wear store keyed by persona: `chamber/wear/<level>/<persona>/project`, per-persona ssh hosts | - | - | core |
 | P1 | `server-host` (Linux web and backup server admin) | ssh-private-key, ftp-credentials, db-credentials, backup-archive | ssh, sftp, ftp, postgres | core |
 | P2 | `ml-engineer` | hf-token, api-token, keys-json | http | core |
 | P3 | `network-admin` (routers, cameras, IoT gateways) | telnet-credentials, passwords-file | telnet, ssh | |
@@ -79,9 +79,9 @@ every login denied; faithful = protocol-correct, accepts only the bound token.
 
 ## Phase W - Wear and tear
 
-Every wear step fills `wear/medium/` or `wear/high/` for one kind, with the
+Every wear step fills `chamber/wear/medium/` or `chamber/wear/high/` for one kind, with the
 planting code in `layers/environment/persona` and a test that no credential
-appears (the rule in `wear/README.md`).
+appears (the rule in `chamber/wear/README.md`).
 
 | Step | Wear | Level | |
 |---|---|---|---|

@@ -1,4 +1,8 @@
-# Ollama benchmark
+# Ollama benchmark (archived)
+
+Archived on 2026-11-26. Local Qwen3 8B on Ollama was dropped on 2026-11-17
+(see `harness/models.yaml`); the results here are the evidence for that
+decision. `qwen3-8k.Modelfile` is the 8k-context model used in the runs.
 
 Measures, for a local model and several context sizes: load time, VRAM used
 and left after loading, how much of the model sits on the GPU, answer time and
@@ -16,7 +20,7 @@ that fills about 70% of the context.
 ## Run
 
 ```powershell
-cd harness\bench
+cd harness\archive\ollama-qwen3-8b
 python ollama_bench.py --model qwen3:8b --ctx 4096 8192 16384 32768
 ```
 

@@ -1,9 +1,18 @@
 # docs
 
-Research report chapters (Lab5-8):
+## Design
 
-1. Modelling of the experiments (`modelling.md`)
-2. Case study on initial data (`case-study.md`)
-3. Related work (`related-work.md`)
+| File | Content |
+|---|---|
+| `architecture.md` | Master tree, XML configuration, layers, token sources, detection |
+| `roadmap.md` | Phases H (honeytokens), P (personas), N (network), W (wear); one step per commit |
+| `tools.md` | Third-party tools with links, licenses and verification status |
 
-Design: `architecture.md` (master tree, XML configuration, implementation plan).
+## Report (Lab5-8), `report/`
+
+| File | Chapter |
+|---|---|
+| `modelling.md` | Modelling of the experiments |
+| `related-work.md` | Related work |
+
+The case study chapter is not written yet.

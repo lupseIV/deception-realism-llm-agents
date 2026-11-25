@@ -30,7 +30,7 @@ profiles:
     notes: "Google AI free tier, Gemini 3.8 Flash (~15 RPM, 1500 RPD). Thinking cannot be disabled on 3.x (floor=low)."
 
   # Local Qwen3 8B (Ollama) was dropped on 2026-11-17: on 8 GB VRAM it is only fully on the
-  # GPU up to an 8k context (bench/results), too small for the agent runs.
+  # GPU up to an 8k context (archive/ollama-qwen3-8b/results), too small for the agent runs.
 
   # --- OpenRouter (OPENROUTER_API_KEY). Thinking OFF on all three. ---
   # One backend pinned per model (allow_fallbacks: false) so a run is one condition.

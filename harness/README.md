@@ -31,7 +31,7 @@ model endpoint and never sees an API key.
 
 ### 1.2 Why add a cloud model
 
-`bench/results/qwen3-8b-*` shows that `qwen3:8b` stays fully on the GPU only up
+`archive/ollama-qwen3-8b/results/qwen3-8b-*` shows that `qwen3:8b` stays fully on the GPU only up
 to an 8k context. At 16k only about 80% of the model is on the GPU and output
 speed roughly halves. A larger model cannot be run locally at a useful speed.
 A larger model also makes the results more credible (same family, different size).
@@ -166,7 +166,8 @@ name and the resolved values are written into the run metadata.
 
 1. Start a pod with vLLM serving the model, with an API key set.
 2. Put the pod URL in `VLLM_BASE_URL` and the key in `VLLM_API_KEY`.
-3. Run the bench tool-call check before the experiment.
+3. Check that a tool call works before the experiment (the archived Ollama
+   benchmark in `archive/ollama-qwen3-8b/` shows the check).
 4. Stop the pod after the run. A stopped pod still pays for storage until the
    volume is deleted.
 
